@@ -23,7 +23,7 @@ tpr = dict()
 roc_auc = dict()
 
 ## Variables
-test_fraction = 0.2;        # fraction of data to be used for the test set
+test_fraction = 0.2;        # fraction of data to be used for the test set. defaults to 0.2.
 validation_fraction = 0.2;  # fraction of the remaining train data to be used as validation
 
 optimizer_learning_rate = 1e-5;
