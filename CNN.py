@@ -33,19 +33,21 @@ def make_labels(targets):
     if the sum of values in the target is zeros returns '0' else returns '1'
     Parameters
     ----------
-    targets : TYPE
-        DESCRIPTION.
+    targets : TYPE np.ndarray
+        Contains the masks.
 
     Returns
     -------
-    binary_targets : TYPE
-        DESCRIPTION.
+    binary_targets : TYPE np.ndarray
+        Contains the labels (0/1) of the images. If 1, the image has a non-empty
+        mask. If 0, the image does have an empty mask.
 
     """
     targetShape = targets.shape;
     targetsReshaped = targets.reshape(targetShape[0],targetShape[1]*targetShape[2]);
     binary_targets = np.max(targetsReshaped,axis=1);
     binary_targets = binary_targets / 255;
+
     return binary_targets
 
 
@@ -55,34 +57,33 @@ def split_data(imgs, targets, test_size = 0.2):
     """
     DESCRIPTION:
     -----------
-    split the data to train and test
-    ***
-        this function needs to change to also consider the validation data:
-            change it to the k-fold cross validation
+    Split the data to a train and test set. This function uses k-fold cross
+    validation.
 
     Parameters
     ----------
-    imgs : TYPE
-        DESCRIPTION.
-    targets : TYPE
-        DESCRIPTION.
-    test_size : TYPE, optional
-        DESCRIPTION. The default is 0.2.
+    imgs : TYPE np.ndarray
+        An array with all the images loaded
+    targets : TYPE np.ndarray
+        An array with all the labels, corresponding to the images.
+    test_size : TYPE np.ndarray, optional
+        The fraction of the data that should be treated as test data. The rest
+        of the data is used as training data. The default is 0.2.
 
     Returns
     -------
-    X_train : TYPE
-        DESCRIPTION.
-    X_test : TYPE
-        DESCRIPTION.
-    y_train : TYPE
-        DESCRIPTION.
-    y_test : TYPE
-        DESCRIPTION.
+    X_train : TYPE np.ndarray
+        Array with the training images.
+    X_test : TYPE np.ndarray
+        Array with the test images.
+    y_train : TYPE np.ndarray
+        Array with the training labels.
+    y_test : TYPE np.ndarray
+        Array with the test labels.
 
     """
-    n_imgs = imgs.shape[0]; # nr of images
-    k = int(np.floor(n_imgs * test_size));   # calculate k from n and the fraction parameter
+    n_imgs = imgs.shape[0];
+    k = int(np.floor(n_imgs * test_size));
 
     # Shuffle both image and mask datasets
     indices = np.arange(n_imgs);
@@ -102,32 +103,35 @@ def split_data(imgs, targets, test_size = 0.2):
 #############################################################################################################
 def normalization(train_data, train_labels, test_data, test_labels):
     """
+    DESCRIPTION:
+    -----------
+    Normalizes both the training data and test data, by substracting the training
+    data mean and dividing by the training data standard deviation.
+
     Parameters
     ----------
-    train_data : TYPE
-        DESCRIPTION.
-    train_labels : TYPE
-        DESCRIPTION.
-    test_data : TYPE
-        DESCRIPTION.
-    test_labels : TYPE
-        DESCRIPTION.
+    train_data : TYPE np.ndarray
+        Array with the training images.
+    train_labels : TYPE np.ndarray
+        Array with the training labels.
+    test_data : TYPE np.ndarray
+        Array with the test images.
+    test_labels : TYPE np.ndarray
+        Array with the test labels.
 
     Returns
     -------
-    train_data : TYPE
-        DESCRIPTION.
-    train_labels : TYPE
-        DESCRIPTION.
-    test_data : TYPE
-        DESCRIPTION.
-    test_labels : TYPE
-        DESCRIPTION.
+    train_data : TYPE np.ndarray
+        Array with the training images.
+    train_labels : TYPE np.ndarray
+        Array with the training labels.
+    test_data : TYPE np.ndarray
+        Array with the test images.
+    test_labels : TYPE np.ndarray
+        Array with the test labels.
 
     """
-
     ###### data normalization ##########
-
     train_data = train_data.astype('float32')
     mean = np.mean(train_data)  # mean for data centering
     std = np.std(train_data)  # std for data normalization
@@ -144,36 +148,82 @@ def normalization(train_data, train_labels, test_data, test_labels):
 ########################################################
 def preprocess(imgs):
     """
-    DESCRIPTION: preprocess data via resizing images
+    DESCRIPTION:
+    -----------
+    Preprocess data via resizing images
 
     Parameters
     ----------
-    imgs : TYPE
-        DESCRIPTION.
+    imgs : TYPE np.ndarray
+        Array with all the images.
 
     Returns
     -------
-    imgs_p : TYPE
-        DESCRIPTION.
+    imgs_p : TYPE np.ndarray
+        Array with all the images, after the preprocessing step.
 
     """
     imgs_p = np.ndarray((imgs.shape[0], IMG_ROWS, IMG_COLS), dtype=np.uint8)
     for i in range(imgs.shape[0]):
-        imgs_p[i] = resize(imgs[i], (IMG_ROWS, IMG_COLS), preserve_range=True) # probleem hier
-
+        imgs_p[i] = resize(imgs[i], (IMG_ROWS, IMG_COLS), preserve_range=True) # change made here
     imgs_p = imgs_p[..., np.newaxis]
     return imgs_p
 
 ################################################################################
-def train_and_predict():
+def write_history(hist):
     """
+    DESCRIPTION:
+    -----------
+    Write the accuracies and losses after every epoch to an xlsx-file.
 
+    Parameters
+    ----------
+    hist : TYPE dictonary
+        Constains the validation/training losses and accuracies for every epoch.
 
     Returns
     -------
     None.
 
     """
+    workbook = xlsxwriter.Workbook(save_path + 'history ' + datetime.now().ctime() + '.xlsx')
+    worksheet = workbook.add_worksheet()
+
+    worksheet.write('A1', 'epoch')
+    worksheet.write('B1', 'val_loss')
+    worksheet.write('C1', 'val_acc')
+    worksheet.write('D1', 'train_loss')
+    worksheet.write('E1', 'train_acc')
+
+    for i in range(nb_epochs):
+        worksheet.write(i+1, 0, i)
+        worksheet.write(i+1, 1, hist['val_loss'][i])
+        worksheet.write(i+1, 2, hist['val_sparse_categorical_accuracy'][i])
+        worksheet.write(i+1, 3, hist['loss'][i])
+        worksheet.write(i+1, 4, hist['sparse_categorical_accuracy'][i])
+
+    workbook.close()
+
+################################################################################
+def train_and_predict():
+    """
+    DESCRIPTION:
+    -----------
+    This is the main function. The data is loaded and preprocessed, the model
+    is created, compiled and fitted using the training data. Finally, the model
+    is tested on the test data, after which post-processing steps are performed.
+
+    Parameters
+    ----------
+    None.
+
+    Returns
+    -------
+    None.
+
+    """
+    start_time = datetime.now()   # Used to measure time taken
+
     print('-'*30)
     print('Loading and preprocessing data and spliting it to test and train...')
     print('-'*30)
@@ -182,7 +232,7 @@ def train_and_predict():
     labels = make_labels(labels)
     data = preprocess(data)
 
-    X_train, X_test, y_train, y_test = split_data(data, labels, test_batch_size)
+    X_train, X_test, y_train, y_test = split_data(data, labels, test_fraction)
 
     print('-'*30)
     print('normalize data...')
@@ -232,7 +282,7 @@ def train_and_predict():
     # model.summary()
 
     model.compile(loss=loss_function, optimizer=model_optimizer, metrics=model_metrics)
-    model.fit(trainingFeatures, trainingLabels, batch_size=train_batch_size, epochs=nb_epochs, \
+    history = model.fit(trainingFeatures, trainingLabels, batch_size=train_batch_size, epochs=nb_epochs, \
         verbose=verbose_mode, shuffle=True, validation_split=validation_fraction) #class_weight = class_w
 
     predicted_testLabels = model.predict_classes(testFeatures,verbose = 0)
@@ -253,9 +303,20 @@ def train_and_predict():
     AUCNet = roc_auc_score(testLabels, soft_targets_test[:,1])
     print('f1Net: %.4f' % (f1Net))
     print('AUCNet : %.4f'%(AUCNet))
+
+    time_taken = (datetime.now() - start_time).seconds;
+    time_mins = time_taken // 60;
+    time_secs = time_taken - (time_mins * 60);
+    time_formatted = '{}:{}'.format(time_mins,time_secs)
+
+
     sio.savemat(save_path + 'CNN_Results_' + datetime.now().ctime() + '.mat', \
         {'precisionNet': precisionNet,'AUCNet':AUCNet,
-        'recallNet': recallNet, 'f1Net': f1Net,'accNet': accNet})
+        'recallNet': recallNet, 'f1Net': f1Net,'accNet': accNet,
+        'time': time_formatted})
+
+    write_history(history.history)
+
 
 if __name__ == '__main__':
     train_and_predict()
