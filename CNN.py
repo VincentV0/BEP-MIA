@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = tensorflow_verbose
 from skimage.transform import resize
 from skimage.io import imsave
 import numpy as np
@@ -14,11 +15,12 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras import backend as K
 from data import load_data
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import f1_score, accuracy_score, auc, roc_curve, roc_auc_score, recall_score, precision_score, matthews_corrcoef, confusion_matrix, average_precision_score
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from datetime import datetime
+import xlsxwriter
 from params import * # Load the parameters set in a different file
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
@@ -53,7 +55,7 @@ def make_labels(targets):
 
 ###########################################
 
-def split_data(imgs, targets, test_size = 0.2):
+def split_data(imgs, targets, nb_folds = 5):
     """
     DESCRIPTION:
     -----------
@@ -66,9 +68,8 @@ def split_data(imgs, targets, test_size = 0.2):
         An array with all the images loaded
     targets : TYPE np.ndarray
         An array with all the labels, corresponding to the images.
-    test_size : TYPE np.ndarray, optional
-        The fraction of the data that should be treated as test data. The rest
-        of the data is used as training data. The default is 0.2.
+    nb_folds : TYPE int, optional
+        The value of k in the k-fold cross-validation algorithm. Default is 5.
 
     Returns
     -------
@@ -82,20 +83,15 @@ def split_data(imgs, targets, test_size = 0.2):
         Array with the test labels.
 
     """
-    n_imgs = imgs.shape[0];
-    k = int(np.floor(n_imgs * test_size));
-
-    # Shuffle both image and mask datasets
-    indices = np.arange(n_imgs);
-    np.random.shuffle(indices);
-    imgs = imgs[indices];
-    targets = targets[indices];
+    # Initiate K-Fold
+    kf = KFold(n_splits=nb_folds,shuffle=True);
+    train_i, test_i = list(kf.split(imgs))[0]
 
     # Return split datasets
-    X_test  = imgs[0:k];
-    X_train = imgs[k:n_imgs];
-    y_test  = targets[0:k];
-    y_train = targets[k:n_imgs];
+    X_test  = imgs[test_i];
+    X_train = imgs[train_i];
+    y_test  = targets[test_i];
+    y_train = targets[train_i];
 
     return X_train,X_test,y_train,y_test
 
@@ -163,14 +159,14 @@ def preprocess(imgs):
         Array with all the images, after the preprocessing step.
 
     """
-    imgs_p = np.ndarray((imgs.shape[0], IMG_ROWS, IMG_COLS), dtype=np.uint8)
+    imgs_p = np.ndarray((imgs.shape[0], img_rows_ds, img_cols_ds), dtype=np.uint8)
     for i in range(imgs.shape[0]):
-        imgs_p[i] = resize(imgs[i], (IMG_ROWS, IMG_COLS), preserve_range=True) # change made here
+        imgs_p[i] = resize(imgs[i], (img_rows_ds, img_cols_ds), preserve_range=True)
     imgs_p = imgs_p[..., np.newaxis]
     return imgs_p
 
 ################################################################################
-def write_history(hist):
+def write_history(hist,filename_time):
     """
     DESCRIPTION:
     -----------
@@ -181,12 +177,15 @@ def write_history(hist):
     hist : TYPE dictonary
         Constains the validation/training losses and accuracies for every epoch.
 
+    filename_time: TYPE datetime
+        Used to set the filename to the time of execution.
+
     Returns
     -------
     None.
 
     """
-    workbook = xlsxwriter.Workbook(save_path + 'history ' + datetime.now().ctime() + '.xlsx')
+    workbook = xlsxwriter.Workbook(save_path + 'history ' + filename_time.ctime() + '.xlsx')
     worksheet = workbook.add_worksheet()
 
     worksheet.write('A1', 'epoch')
@@ -198,9 +197,9 @@ def write_history(hist):
     for i in range(nb_epochs):
         worksheet.write(i+1, 0, i)
         worksheet.write(i+1, 1, hist['val_loss'][i])
-        worksheet.write(i+1, 2, hist['val_sparse_categorical_accuracy'][i])
+        worksheet.write(i+1, 2, hist['val_accuracy'][i])
         worksheet.write(i+1, 3, hist['loss'][i])
-        worksheet.write(i+1, 4, hist['sparse_categorical_accuracy'][i])
+        worksheet.write(i+1, 4, hist['accuracy'][i])
 
     workbook.close()
 
@@ -232,7 +231,7 @@ def train_and_predict():
     labels = make_labels(labels)
     data = preprocess(data)
 
-    X_train, X_test, y_train, y_test = split_data(data, labels, test_fraction)
+    X_train, X_test, y_train, y_test = split_data(data, labels, nb_folds)
 
     print('-'*30)
     print('normalize data...')
@@ -256,7 +255,7 @@ def train_and_predict():
 
 
     model = keras.Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape = INPUT_SHAPE))
+    model.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape = input_shape_ds))
     model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
 
@@ -301,22 +300,28 @@ def train_and_predict():
     print('recallNet : %.4f'%(recallNet))
 
     AUCNet = roc_auc_score(testLabels, soft_targets_test[:,1])
+    fpr, tpr, _ = roc_curve(testLabels, soft_targets_test[:, 1])
+    roc_auc = auc(fpr, tpr)
+
     print('f1Net: %.4f' % (f1Net))
     print('AUCNet : %.4f'%(AUCNet))
 
-    time_taken = (datetime.now() - start_time).seconds;
+    end_time = datetime.now()
+    time_taken = (end_time - start_time).seconds;
     time_mins = time_taken // 60;
     time_secs = time_taken - (time_mins * 60);
     time_formatted = '{}:{}'.format(time_mins,time_secs)
 
 
-    sio.savemat(save_path + 'CNN_Results_' + datetime.now().ctime() + '.mat', \
+    sio.savemat(save_path + 'CNN_Results_' + end_time.ctime() + '.mat', \
         {'precisionNet': precisionNet,'AUCNet':AUCNet,
         'recallNet': recallNet, 'f1Net': f1Net,'accNet': accNet,
+        'fpr':fpr, 'tpr':tpr, 'ROC-AUC': roc_auc,
         'time': time_formatted})
 
-    write_history(history.history)
+    write_history(history.history,end_time)
 
 
 if __name__ == '__main__':
-    train_and_predict()
+    for i in range(runNum):
+        train_and_predict()
