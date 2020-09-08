@@ -2,10 +2,10 @@
 ### 8 Sep 2020
 - Update on `preprocess`function: downsampling does now work properly.
 - Update in the `split_data` function: k-fold cross validation is now done by using the sklearn KFold function. The `test_fraction` variable has changed to `nb_folds`, as this is required by the KFold function.
-- `write_history` has been updated with a filename, matching the filenames of the other output files.
-- The "false positive rate" and "false negative rate", as well as the "Area Under Curve" (AUC) for these curves, has been added to the "Results"-file.
-- Filenames of the output files do now have matching times.
-- The `runNum` variable now determines how many times the script is run. Runs are done completely seperately, only the hyperparameters remain unchanged (data splitting, normalization and model fitting could all be the cause of other results).
+- `write_history` has been changed to `write_save_data`; all the results are now written from here.
+- The "false positive rate" and "false negative rate", as well as the "Area Under Curve" (AUC) for these curves, has been added to the "Results" .mat-file.
+- Filenames of the output files do now have matching times, and the : are removed (because of errors with these filenames in Windows)
+- The `runNum` variable now determines how many times the script is run. Runs are done completely seperately, only the hyperparameters remain unchanged (data splitting, normalization and model fitting could all be the cause of other results). The whole script has been customized to this.
 - TensorFlow information output is now suppressed; only warnings and errors should be printed (for clarity)
 - Updated docstrings
 
