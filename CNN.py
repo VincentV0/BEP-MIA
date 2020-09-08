@@ -3,7 +3,10 @@
 from __future__ import print_function
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = tensorflow_verbose
+from params import * # Load the parameters set in a different
+import tensorflow as tf
+tf.get_logger().setLevel('WARNING')
+tf.autograph.set_verbosity(2)
 from skimage.transform import resize
 from skimage.io import imsave
 import numpy as np
@@ -14,17 +17,22 @@ from tensorflow.keras.layers import Input, Activation, concatenate, Conv2D, MaxP
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.keras import backend as K
-from data import load_data
+from data import load_data, write_save_data
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import f1_score, accuracy_score, auc, roc_curve, roc_auc_score, recall_score, precision_score, matthews_corrcoef, confusion_matrix, average_precision_score
 import scipy.io as sio
 import matplotlib.pyplot as plt
 from datetime import datetime
 import xlsxwriter
-from params import * # Load the parameters set in a different file
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
+def time_diff_format(start,end):
+    time_taken = (end - start).seconds;
+    time_mins = time_taken // 60;
+    time_secs = time_taken - (time_mins * 60);
+    time_formatted = '{}:{}'.format(time_mins,time_secs)
+    return time_formatted
 
 
 def make_labels(targets):
@@ -54,7 +62,6 @@ def make_labels(targets):
 
 
 ###########################################
-
 def split_data(imgs, targets, nb_folds = 5):
     """
     DESCRIPTION:
@@ -141,6 +148,7 @@ def normalization(train_data, train_labels, test_data, test_labels):
 
     return train_data, train_labels, test_data, test_labels
 
+
 ########################################################
 def preprocess(imgs):
     """
@@ -160,48 +168,10 @@ def preprocess(imgs):
 
     """
     imgs_p = np.ndarray((imgs.shape[0], img_rows_ds, img_cols_ds), dtype=np.uint8)
-    for i in range(imgs.shape[0]):
-        imgs_p[i] = resize(imgs[i], (img_rows_ds, img_cols_ds), preserve_range=True)
+    imgs_p = resize(imgs[i], (imgs.shape[0], img_rows_ds, img_cols_ds), preserve_range=True)
     imgs_p = imgs_p[..., np.newaxis]
     return imgs_p
 
-################################################################################
-def write_history(hist,filename_time):
-    """
-    DESCRIPTION:
-    -----------
-    Write the accuracies and losses after every epoch to an xlsx-file.
-
-    Parameters
-    ----------
-    hist : TYPE dictonary
-        Constains the validation/training losses and accuracies for every epoch.
-
-    filename_time: TYPE datetime
-        Used to set the filename to the time of execution.
-
-    Returns
-    -------
-    None.
-
-    """
-    workbook = xlsxwriter.Workbook(save_path + 'history ' + filename_time.ctime() + '.xlsx')
-    worksheet = workbook.add_worksheet()
-
-    worksheet.write('A1', 'epoch')
-    worksheet.write('B1', 'val_loss')
-    worksheet.write('C1', 'val_acc')
-    worksheet.write('D1', 'train_loss')
-    worksheet.write('E1', 'train_acc')
-
-    for i in range(nb_epochs):
-        worksheet.write(i+1, 0, i)
-        worksheet.write(i+1, 1, hist['val_loss'][i])
-        worksheet.write(i+1, 2, hist['val_accuracy'][i])
-        worksheet.write(i+1, 3, hist['loss'][i])
-        worksheet.write(i+1, 4, hist['accuracy'][i])
-
-    workbook.close()
 
 ################################################################################
 def train_and_predict():
@@ -244,11 +214,6 @@ def train_and_predict():
 
     trainingLabels = keras.utils.to_categorical(trainingLabels, NB_CLASSES)
 
-    # Test data function is not used, but implemented in the split_data function
-    # imgs_test, imgs_id_test = load_test_data()
-    # imgs_test = preprocess(imgs_test)
-
-
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
@@ -278,50 +243,36 @@ def train_and_predict():
     model.add(Dense(NB_CLASSES))
     model.add(Activation('softmax'))
 
-    # model.summary()
-
     model.compile(loss=loss_function, optimizer=model_optimizer, metrics=model_metrics)
     history = model.fit(trainingFeatures, trainingLabels, batch_size=train_batch_size, epochs=nb_epochs, \
         verbose=verbose_mode, shuffle=True, validation_split=validation_fraction) #class_weight = class_w
 
     predicted_testLabels = model.predict_classes(testFeatures,verbose = 0)
     soft_targets_test = model.predict(testFeatures,verbose = 0)
-    ############## model prediction and evaluation ##############
 
+    ############## model prediction and evaluation ##############
     print('-'*30)
     print('Calculating scores...')
     print('-'*30)
 
-    precisionNet = precision_score(testLabels, predicted_testLabels)
-    recallNet = recall_score(testLabels, predicted_testLabels)
-    accNet = accuracy_score(testLabels, predicted_testLabels)
-    f1Net = f1_score(testLabels, predicted_testLabels)
-    print('precisionNet: %.4f' % (precisionNet))
-    print('recallNet : %.4f'%(recallNet))
-
-    AUCNet = roc_auc_score(testLabels, soft_targets_test[:,1])
+    # Calculate scores and add to their list
+    precisionNet.append(precision_score(testLabels, predicted_testLabels))
+    recallNet.append(recall_score(testLabels, predicted_testLabels))
+    accNet.append(accuracy_score(testLabels, predicted_testLabels))
+    f1Net.append(f1_score(testLabels, predicted_testLabels))
+    AUCNet.append(roc_auc_score(testLabels, soft_targets_test[:,1]))
     fpr, tpr, _ = roc_curve(testLabels, soft_targets_test[:, 1])
-    roc_auc = auc(fpr, tpr)
-
-    print('f1Net: %.4f' % (f1Net))
-    print('AUCNet : %.4f'%(AUCNet))
+    fpr_list.append(fpr)
+    tpr_list.append(tpr)
 
     end_time = datetime.now()
-    time_taken = (end_time - start_time).seconds;
-    time_mins = time_taken // 60;
-    time_secs = time_taken - (time_mins * 60);
-    time_formatted = '{}:{}'.format(time_mins,time_secs)
+    total_time = time_diff_format(start_time, end_time)
+    time_list.append(total_time)
 
+    history_list.append(history.history)
 
-    sio.savemat(save_path + 'CNN_Results_' + end_time.ctime() + '.mat', \
-        {'precisionNet': precisionNet,'AUCNet':AUCNet,
-        'recallNet': recallNet, 'f1Net': f1Net,'accNet': accNet,
-        'fpr':fpr, 'tpr':tpr, 'ROC-AUC': roc_auc,
-        'time': time_formatted})
-
-    write_history(history.history,end_time)
-
-
+################################################################################
 if __name__ == '__main__':
     for i in range(runNum):
         train_and_predict()
+    write_save_data(history_list)
