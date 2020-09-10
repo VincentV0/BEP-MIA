@@ -1,4 +1,12 @@
 # Changelog
+
+### 10 Sep 2020
+- It is now possible to push a specific parameter file as an argument through the command line.
+- Problem in the preprocess function is now fixed.
+- Added `plot_ROC_curve` function, which saves the ROC curve to a .png file.
+- Changed name of `params.py` to `params_default.py`; the `data.py` file always takes the parameters from here.
+- Updated docstrings
+
 ### 8 Sep 2020
 - Update on `preprocess`function: downsampling does now work properly.
 - Update in the `split_data` function: k-fold cross validation is now done by using the sklearn KFold function. The `test_fraction` variable has changed to `nb_folds`, as this is required by the KFold function.
