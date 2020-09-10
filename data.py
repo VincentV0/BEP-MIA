@@ -11,8 +11,7 @@ import os
 import numpy as np
 
 from skimage.io import imsave, imread
-from params import *
-
+from params_default import *
 
 
 ################################################################################
@@ -112,56 +111,6 @@ def load_test_data():
     return imgs_test, imgs_id
 
 ##########################################################################
-
-def write_save_data(hist):
-    """
-    DESCRIPTION:
-    -----------
-    Write the accuracies and losses after every epoch to an xlsx-file, and the
-    evaluation scores on the test set to a seperate mat file.
-
-    Parameters
-    ----------
-    hist : TYPE list
-        Constains the validation/training losses and accuracies for every epoch.
-
-    Returns
-    -------
-    None.
-
-    """
-    # Get the datetime for a overall filename
-    filename_time = datetime.now().strftime("%Y_%m_%d %H_%M_%S")
-
-    # Save the accuracy scores to a .mat file
-    sio.savemat(save_path + 'CNN_Results_' + filename_time + '.mat', \
-        {'precisionNet': precisionNet,'AUCNet':AUCNet,
-        'recallNet': recallNet, 'f1Net': f1Net,'accNet': accNet,
-        'fpr':fpr_list, 'tpr':tpr_list,
-        'time': time_format_list})
-
-    # Save the loss/accuracy history to a xlsx file
-    workbook = xlsxwriter.Workbook(save_path + 'history ' + filename_time + '.xlsx')
-    worksheet = workbook.add_worksheet()
-    worksheet.write('B1', 'epoch')
-    worksheet.write('C1', 'val_loss')
-    worksheet.write('D1', 'val_acc')
-    worksheet.write('E1', 'train_loss')
-    worksheet.write('F1', 'train_acc')
-
-    for runnr in range(1,runNum+1):
-        for i in range(nb_epochs):
-            line = (runnr-1)*nb_epochs + i + 1 + runnr;
-            worksheet.write(line, 0, 'RUN {}'.format(runnr))
-            worksheet.write(line, 1, i+1)
-            worksheet.write(line, 2, hist[runnr-1]['val_loss'][i])
-            worksheet.write(line, 3, hist[runnr-1]['val_accuracy'][i])
-            worksheet.write(line, 4, hist[runnr-1]['loss'][i])
-            worksheet.write(line, 5, hist[runnr-1]['accuracy'][i])
-
-    workbook.close()
-
-################################################################################
 
 
 if __name__ == '__main__':
