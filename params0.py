@@ -20,7 +20,7 @@ data_path = '/data/vrjvousten/data/';    # path where the data is located
 # How many times should the script run?
 runNum = 2;
 
-# Save data
+# Used for save data
 fpr = dict();
 tpr = dict();
 roc_auc = dict();
@@ -35,7 +35,7 @@ time_list = [];
 history_list = [];
 
 ## Variables
-nb_folds = 5;               # nr of folds to be used in k-fold cross validation.
+nb_folds = 10;               # nr of folds to be used in k-fold cross validation.
 validation_fraction = 0.2;  # fraction of the remaining train data to be used as validation
 
 optimizer_learning_rate = 1e-5;
