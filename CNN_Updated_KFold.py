@@ -1,4 +1,4 @@
-
+filename_run
 
 from __future__ import print_function
 
@@ -224,7 +224,7 @@ def write_save_data(hist):
     """
     # Get the datetime for a overall filename
     filename_time = datetime.now().strftime("%Y-%m-%d %H_%M_%S")
-    folder = pm.save_path + 'RUN at ' + filename_time + '/';
+    folder = pm.save_path + 'RUN {} at {}/'.format(pm.filename_run, filename_time);
     # Make a folder for all the results
     os.mkdir(folder)
 

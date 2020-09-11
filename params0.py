@@ -16,6 +16,7 @@ input_shape_ds = (img_rows_ds,img_cols_ds,1);
 # Location of data
 save_path = '/data/vrjvousten/results/';  # path to save the results to
 data_path = '/data/vrjvousten/data/';    # path where the data is located
+pm.filename_run = 'test';
 
 # How many times should the script run?
 runNum = 2;
