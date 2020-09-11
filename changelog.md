@@ -1,6 +1,7 @@
 # Changelog
 ### 11 Sep 2020
-- Added `CNN_Updated_KFold.py`; this file should have the K-Fold cross validation applied correctly. 
+- Added `CNN_Updated_KFold.py`; this file should have the K-Fold cross validation applied correctly.
+- Added custom folder name per parameter file (in `CNN_Updated_KFold.py` for now only)
 
 ### 10 Sep 2020
 - It is now possible to push a specific parameter file as an argument through the command line.
