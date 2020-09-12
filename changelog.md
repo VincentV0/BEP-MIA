@@ -1,4 +1,9 @@
 # Changelog
+
+### 12 Sep 2020
+- Result data processing is now updated, but not yet tested.
+- `CNN_Updated_KFold.py` renamed to `CNN.py`; old `CNN.py` has been removed.
+
 ### 11 Sep 2020
 - Added `CNN_Updated_KFold.py`; this file should have the K-Fold cross validation applied correctly.
 - Added custom folder name per parameter file (in `CNN_Updated_KFold.py` for now only)
