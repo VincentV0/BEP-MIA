@@ -16,10 +16,6 @@ input_shape_ds = (img_rows_ds,img_cols_ds,1);
 # Location of data
 save_path = '/data/vrjvousten/results/';  # path to save the results to
 data_path = '/data/vrjvousten/data/';    # path where the data is located
-pm.filename_run = 'noname';
-
-# How many times should the script run?
-runNum = 10;
 
 # Used for save data
 fpr = dict();
@@ -35,17 +31,23 @@ tpr_list = [];
 time_list = [];
 history_list = [];
 
-## Variables
-nb_folds = 5;               # nr of folds to be used in k-fold cross validation.
-validation_fraction = 0.2;  # fraction of the remaining train data to be used as validation
+verbose_mode = 1;           # verbosity mode (0 = silent, 1 = progress bar, 2 = one line per epoch).
 
-optimizer_learning_rate = 1e-5;
+
+## Hyperparameters:
+filename_run = 'default';   # Used to save the result data to a specific name
+nb_folds = 5;               # Number of folds to be used in k-fold cross validation
+runNum = 10;                # nr of runs per fold
+nb_epochs = [20];          # number of epochs to train the model
+learning_rate = [1e-5];# variable learning rate for different amounts of epochs
+
+validation_fraction = 0.2;  # fraction of the remaining train data to be used as
+                            # validation (this uses hold-out validation)
+train_batch_size = 32;      # number of samples used in the calculation for every gradient update
+
 model_optimizer = Adam(lr=optimizer_learning_rate);
 loss_function = 'binary_crossentropy';
 model_metrics = ['accuracy'];
 
-train_batch_size = 32;      # number of samples for every gradient update
-nb_epochs = 20;          # number of epochs to train the model
-verbose_mode = 1;           # verbosity mode (0 = silent, 1 = progress bar, 2 = one line per epoch).
-#tensorflow_verbose = '1';  # TF verbosity mode (0 = print all information, 1 = hide info, 2 = hide info + warning,
-                            # 3 = hide all)
+conv_kernel = (3, 3);
+maxpool_kernel = (2, 2);

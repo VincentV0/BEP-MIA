@@ -1,5 +1,4 @@
 
-
 from __future__ import print_function
 
 import os
@@ -107,7 +106,7 @@ def make_labels(targets):
 
 
 ################################################################################
-def split_data(imgs, targets, nb_folds = 5):
+def split_data(imgs, targets, nb_folds):
     """
     DESCRIPTION:
     -----------
@@ -125,27 +124,15 @@ def split_data(imgs, targets, nb_folds = 5):
 
     Returns
     -------
-    X_train : TYPE np.ndarray
-        Array with the training images.
-    X_test : TYPE np.ndarray
-        Array with the test images.
-    y_train : TYPE np.ndarray
-        Array with the training labels.
-    y_test : TYPE np.ndarray
-        Array with the test labels.
-
+    indices : TYPE list
+        List with arrays, which contain the training and test indices for all the
+        runs
     """
     # Initiate K-Fold
     kf = KFold(n_splits=nb_folds,shuffle=True);
-    train_i, test_i = list(kf.split(imgs))[0]
-
-    # Return split datasets
-    X_test  = imgs[test_i];
-    X_train = imgs[train_i];
-    y_test  = targets[test_i];
-    y_train = targets[train_i];
-
-    return X_train,X_test,y_train,y_test
+    # Get and return indices
+    indices = list(kf.split(imgs))
+    return indices
 
 
 ################################################################################
@@ -217,7 +204,7 @@ def preprocess(imgs):
     return imgs_p
 
 ################################################################################
-def write_save_data(hist):
+def write_save_data():
     """
     DESCRIPTION:
     -----------
@@ -226,8 +213,7 @@ def write_save_data(hist):
 
     Parameters
     ----------
-    hist : TYPE list
-        Constains the validation/training losses and accuracies for every epoch.
+    None.
 
     Returns
     -------
@@ -236,17 +222,12 @@ def write_save_data(hist):
     """
     # Get the datetime for a overall filename
     filename_time = datetime.now().strftime("%Y-%m-%d %H_%M_%S")
-    folder = pm.save_path + 'RUN at ' + filename_time + '/';
+    folder = pm.save_path + 'RUN {} at {}/'.format(pm.filename_run, filename_time);
+    # Make a folder for all the results
     os.mkdir(folder)
 
-    plot_ROC_curve(pm.fpr_list,pm.tpr_list, folder, filename_time)
-
-    # Save the accuracy scores to a .mat file
-    sio.savemat(folder + 'CNN_Results_' + filename_time + '.mat', \
-        {'precisionNet': pm.precisionNet,'AUCNet':pm.AUCNet,
-        'recallNet': pm.recallNet, 'f1Net': pm.f1Net,'accNet': pm.accNet,
-        'fpr':pm.fpr_list, 'tpr':pm.tpr_list,
-        'time': pm.time_list})
+    # Plot ROC curve and save to the folder
+    plot_ROC_curve(pm.fpr_list, pm.tpr_list, folder, filename_time)
 
     # Save the loss/accuracy history to a xlsx file
     workbook = xlsxwriter.Workbook(folder + 'history ' + filename_time + '.xlsx')
@@ -257,16 +238,53 @@ def write_save_data(hist):
     worksheet.write('E1', 'train_loss')
     worksheet.write('F1', 'train_acc')
 
-    for runnr in range(1,pm.runNum+1):
-        for i in range(pm.nb_epochs):
-            line = (runnr-1)*pm.nb_epochs + i + 1 + runnr;
-            worksheet.write(line, 0, 'RUN {}'.format(runnr))
-            worksheet.write(line, 1, i+1)
-            worksheet.write(line, 2, hist[runnr-1]['val_loss'][i])
-            worksheet.write(line, 3, hist[runnr-1]['val_accuracy'][i])
-            worksheet.write(line, 4, hist[runnr-1]['loss'][i])
-            worksheet.write(line, 5, hist[runnr-1]['accuracy'][i])
+    for foldnr in range(1,pm.nb_folds+1):
+        for runnr in range(1,pm.runNum+1):
+            for i in range(sum(pm.nb_epochs)):
+                line = (foldnr-1)*pm.runNum*sum(pm.nb_epochs) + (runnr-1)*sum(pm.nb_epochs) + i + 1 + runnr + foldnr;
+                worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr, runnr))
+                worksheet.write(line, 1, i+1)
+                worksheet.write(line, 2, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_loss'][i])
+                worksheet.write(line, 3, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_accuracy'][i])
+                worksheet.write(line, 4, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['loss'][i])
+                worksheet.write(line, 5, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['accuracy'][i])
 
+    worksheet.write(1, 7, 'precision')
+    worksheet.write(2, 7, 'AUC')
+    worksheet.write(3, 7, 'recall')
+    worksheet.write(4, 7, 'f1')
+    worksheet.write(5, 7, 'acc')
+    worksheet.write(6, 7, 'time')
+    column = 8;
+    for foldnr in range(pm.nb_folds):
+        for runnr in range(pm.runNum):
+            worksheet.write(0, column, "FOLD {} RUN {}".format(foldnr+1, runnr+1))
+            worksheet.write(1, column, pm.precisionNet[foldnr*pm.runNum + runnr])
+            worksheet.write(2, column, pm.AUCNet[foldnr*pm.runNum + runnr])
+            worksheet.write(3, column, pm.recallNet[foldnr*pm.runNum + runnr])
+            worksheet.write(4, column, pm.f1Net[foldnr*pm.runNum + runnr])
+            worksheet.write(5, column, pm.accNet[foldnr*pm.runNum + runnr])
+            worksheet.write(6, column, pm.time_list[foldnr*pm.runNum + runnr])
+            column += 1;
+
+    workbook.close()
+
+    # Also write the history of the final epoch for every run
+    workbook = xlsxwriter.Workbook(folder + 'history_final_epoch ' + filename_time + '.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.write('B1', 'val_loss')
+    worksheet.write('C1', 'val_acc')
+    worksheet.write('D1', 'train_loss')
+    worksheet.write('E1', 'train_acc')
+
+    for foldnr in range(1,pm.nb_folds+1):
+        for runnr in range(1,pm.runNum+1):
+            line = (foldnr-1)*(pm.runNum+1) + runnr;
+            worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr, runnr))
+            worksheet.write(line, 1, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_loss'][-1])
+            worksheet.write(line, 2, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_accuracy'][-1])
+            worksheet.write(line, 3, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['loss'][-1])
+            worksheet.write(line, 4, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['accuracy'][-1])
     workbook.close()
 
 ############## Main function ###################################################
@@ -288,17 +306,6 @@ def train_and_predict():
 
     """
     start_time = datetime.now()   # Used to measure time taken
-
-    print('-'*30)
-    print('Loading and preprocessing data and spliting it to test and train...')
-    print('-'*30)
-
-    data, labels = load_data()
-    labels = make_labels(labels)
-    data = preprocess(data)
-
-    X_train, X_test, y_train, y_test = split_data(data, labels, pm.nb_folds)
-
     print('-'*30)
     print('normalize data...')
     print('-'*30)
@@ -307,7 +314,6 @@ def train_and_predict():
     print('-'*30)
     print('Make labels categorical...')
     print('-'*30)
-
     trainingLabels = keras.utils.to_categorical(trainingLabels, pm.NB_CLASSES)
 
     print('-'*30)
@@ -316,21 +322,21 @@ def train_and_predict():
 
 
     model = keras.Sequential()
-    model.add(Conv2D(32, (3, 3), activation='relu', padding='same', input_shape = pm.input_shape_ds))
-    model.add(Conv2D(32, (3, 3), activation='relu', padding='same'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(32, pm.conv_kernel, activation='relu', padding='same', input_shape = pm.input_shape_ds))
+    model.add(Conv2D(32, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
-    model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-    model.add(Conv2D(64, (3, 3), activation='relu', padding='same'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(64, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(64, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
-    model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
-    model.add(Conv2D(128, (3, 3), activation='relu', padding='same'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(128, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(128, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
-    model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
-    model.add(Conv2D(256, (3, 3), activation='relu', padding='same'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(256, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(256, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
     model.add(Flatten())
     model.add(BatchNormalization())
@@ -339,9 +345,11 @@ def train_and_predict():
     model.add(Dense(pm.NB_CLASSES))
     model.add(Activation('softmax'))
 
-    model.compile(loss=pm.loss_function, optimizer=pm.model_optimizer, metrics=pm.model_metrics)
-    history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs, \
-        verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction) #class_weight = class_w
+    for ep in range(len(pm.nb_epochs)):
+        optimizer=Adam(lr=pm.learning_rate[ep])
+        model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
+        history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs[ep], \
+            verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction) #class_weight = class_w
 
     predicted_testLabels = model.predict_classes(testFeatures,verbose = 0)
     soft_targets_test = model.predict(testFeatures,verbose = 0)
@@ -385,8 +393,30 @@ if __name__ == '__main__':
         print("Only one argument is allowed to define the parameter file.")
         sys.exit(2)
 
+    # Start the execution of the script here
+    print('-'*30)
+    print('Loading and preprocessing data and applying K-Fold splitting...')
+    print('-'*30)
 
-    for run in range(pm.runNum):
-        train_and_predict()
+    # Loading, preprocessing and splitting data
+    data, labels = load_data()
+    labels = make_labels(labels)
+    data = preprocess(data)
+    indices = split_data(data, labels, pm.nb_folds)
 
-    write_save_data(pm.history_list)
+    for fold in range(pm.nb_folds):
+        print('-'*30)
+        print('Assigning data for this fold...')
+        print('-'*30)
+        # Assigning the data indices for this run
+        train_i, test_i = indices[fold]
+        # Return split datasets
+        X_test  = data[test_i];
+        X_train = data[train_i];
+        y_test  = labels[test_i];
+        y_train = labels[train_i];
+        for run in range(pm.runNum):
+            train_and_predict()
+
+    # Save the data to an xlsx-file and an image.
+    write_save_data()
