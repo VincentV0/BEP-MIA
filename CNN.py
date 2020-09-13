@@ -345,12 +345,17 @@ def train_and_predict():
     model.add(Dropout(0.5))
     model.add(Dense(pm.NB_CLASSES))
     model.add(Activation('softmax'))
-
     for ep in range(len(pm.nb_epochs)):
         optimizer=Adam(lr=pm.learning_rate[ep])
         model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
         history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs[ep], \
             verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction) #class_weight = class_w
+        if ep == 0:
+            hist_temp = history.history;
+        else:
+            for key in hist_temp:
+                for item in history.history[key]:
+                    hist_temp[key].append(item)
 
     predicted_testLabels = model.predict_classes(testFeatures,verbose = 0)
     soft_targets_test = model.predict(testFeatures,verbose = 0)
@@ -375,7 +380,7 @@ def train_and_predict():
     total_time = time_diff_format(start_time, end_time)
     pm.time_list.append(total_time)
 
-    pm.history_list.append(history.history)
+    pm.history_list.append(hist_temp)
 
 ################################################################################
 if __name__ == '__main__':
