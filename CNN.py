@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import os
 import sys
+sys.path.append('./parameters/')
 from importlib import import_module
 from skimage.transform import resize
 from skimage.io import imsave
@@ -241,7 +242,7 @@ def write_save_data():
     for foldnr in range(1,pm.nb_folds+1):
         for runnr in range(1,pm.runNum+1):
             for i in range(sum(pm.nb_epochs)):
-                line = (foldnr-1)*pm.runNum*sum(pm.nb_epochs) + (runnr-1)*sum(pm.nb_epochs) + i + 1 + runnr + foldnr;
+                line = (foldnr-1)*pm.runNum*sum(pm.nb_epochs) + (runnr-1)*sum(pm.nb_epochs) + i + runnr + (foldnr-1)*2;
                 worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr, runnr))
                 worksheet.write(line, 1, i+1)
                 worksheet.write(line, 2, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_loss'][i])
