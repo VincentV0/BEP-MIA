@@ -45,7 +45,7 @@ validation_fraction = 0.2;  # fraction of the remaining train data to be used as
                             # validation (this uses hold-out validation)
 train_batch_size = 32;      # number of samples used in the calculation for every gradient update
 
-model_optimizer = Adam(lr=optimizer_learning_rate);
+#model_optimizer = Adam(lr=learning_rate);
 loss_function = 'binary_crossentropy';
 model_metrics = ['accuracy'];
 
