@@ -3,8 +3,11 @@ from __future__ import print_function
 
 import os
 import sys
+
+# Path where parameter files are stored are appended to the system path variable
 sys.path.append('./parameters/')
 sys.path.append('./random_parameters/')
+
 from importlib import import_module
 from skimage.transform import resize
 from skimage.io import imsave
@@ -72,9 +75,15 @@ def plot_ROC_curve(fpr, tpr, folder, filetime):
         The time difference in mm:ss format
 
     """
+    # Make the figure
     fig,ax = plt.subplots()
+
+    # Plot the ROC curves for the first fold only (figures become unclear when
+    # more folds are plotted)
     for i in range(pm.runNum):
         ax.plot(fpr[i], tpr[i], marker = '.', label='Run {}'.format(i),alpha=0.3)
+
+    # Style plot and save to file
     ax.set_xlabel('False positive rate')
     ax.set_ylabel('True positive rate')
     ax.legend()
@@ -225,6 +234,7 @@ def write_save_data():
     # Get the datetime for a overall filename
     filename_time = datetime.now().strftime("%Y-%m-%d %H_%M_%S")
     folder = pm.save_path + 'RUN {} at {}/'.format(pm.filename_run, filename_time);
+
     # Make a folder for all the results
     os.mkdir(folder)
 
@@ -239,7 +249,6 @@ def write_save_data():
     worksheet.write('D1', 'val_acc')
     worksheet.write('E1', 'train_loss')
     worksheet.write('F1', 'train_acc')
-
     line = 1;
     for foldnr in range(1,pm.nb_folds+1):
         for runnr in range(1,pm.runNum+1):
@@ -253,7 +262,7 @@ def write_save_data():
                 line += 1;
             line += 1
 
-
+    # Also write the scores for every run to this file
     worksheet.write(1, 7, 'precision')
     worksheet.write(2, 7, 'AUC')
     worksheet.write(3, 7, 'recall')
@@ -271,17 +280,16 @@ def write_save_data():
             worksheet.write(5, column, pm.accNet[foldnr*pm.runNum + runnr])
             worksheet.write(6, column, pm.time_list[foldnr*pm.runNum + runnr])
             column += 1;
-
     workbook.close()
 
-    # Also write the history of the final epoch for every run
+
+    # Also write the history of the final epoch for every run to a different file
     workbook = xlsxwriter.Workbook(folder + 'history_final_epoch ' + filename_time + '.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.write('B1', 'val_loss')
     worksheet.write('C1', 'val_acc')
     worksheet.write('D1', 'train_loss')
     worksheet.write('E1', 'train_acc')
-
     for foldnr in range(1,pm.nb_folds+1):
         for runnr in range(1,pm.runNum+1):
             line = (foldnr-1)*(pm.runNum+1) + runnr;
@@ -311,6 +319,7 @@ def train_and_predict():
 
     """
     start_time = datetime.now()   # Used to measure time taken
+
     print('-'*30)
     print('normalize data...')
     print('-'*30)
@@ -324,7 +333,6 @@ def train_and_predict():
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
-
 
     model = keras.Sequential()
     model.add(Conv2D(32, pm.conv_kernel, activation='relu', padding='same', input_shape = pm.input_shape_ds))
@@ -349,11 +357,15 @@ def train_and_predict():
     model.add(Dropout(0.5))
     model.add(Dense(pm.NB_CLASSES))
     model.add(Activation('softmax'))
+
+    # Selecting optimizer with variable learning rate, and compile and fit the model using these settings
     for ep in range(len(pm.nb_epochs)):
         optimizer=Adam(lr=pm.learning_rate[ep])
         model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
         history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs[ep], \
             verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction) #class_weight = class_w
+
+        # Save the history for this set of epochs
         if ep == 0:
             hist_temp = history.history;
         else:
@@ -361,6 +373,7 @@ def train_and_predict():
                 for item in history.history[key]:
                     hist_temp[key].append(item)
 
+    # Predict classes
     predicted_testLabels = model.predict_classes(testFeatures,verbose = 0)
     soft_targets_test = model.predict(testFeatures,verbose = 0)
 
@@ -414,17 +427,21 @@ if __name__ == '__main__':
     data = preprocess(data)
     indices = split_data(data, labels, pm.nb_folds)
 
+    # Run this for every fold
     for fold in range(pm.nb_folds):
         print('-'*30)
         print('Assigning data for this fold...')
         print('-'*30)
-        # Assigning the data indices for this run
+
         train_i, test_i = indices[fold]
+
         # Return split datasets
         X_test  = data[test_i];
         X_train = data[train_i];
         y_test  = labels[test_i];
         y_train = labels[train_i];
+
+        # Run the main loop.
         for run in range(pm.runNum):
             train_and_predict()
 
