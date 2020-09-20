@@ -1,6 +1,7 @@
 # Changelog
 ### 20 Sep 2020
 - Added the TensorBoard and EarlyStopping callbacks.
+- Added a variable convolution kernel size for the different layer "segments".
 
 ### 12 Sep 2020
 - Result data processing is now updated, but not yet tested.
