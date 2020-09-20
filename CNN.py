@@ -7,7 +7,6 @@ import sys
 # Path where parameter files are stored are appended to the system path variable
 sys.path.append('./parameters/')
 sys.path.append('./random_parameters/')
-
 from importlib import import_module
 from skimage.transform import resize
 from skimage.io import imsave
@@ -17,7 +16,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import layers
 from tensorflow.keras.layers import Input, Activation, concatenate, Conv2D, MaxPooling2D, Conv2DTranspose, Flatten, Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras import backend as K
 from data import load_data
 from sklearn.model_selection import train_test_split, KFold
@@ -250,17 +249,18 @@ def write_save_data():
     worksheet.write('E1', 'train_loss')
     worksheet.write('F1', 'train_acc')
     line = 1;
-    for foldnr in range(1,pm.nb_folds+1):
-        for runnr in range(1,pm.runNum+1):
-            for i in range(sum(pm.nb_epochs)):
-                worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr, runnr))
-                worksheet.write(line, 1, i+1)
-                worksheet.write(line, 2, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_loss'][i])
-                worksheet.write(line, 3, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['val_accuracy'][i])
-                worksheet.write(line, 4, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['loss'][i])
-                worksheet.write(line, 5, pm.history_list[(foldnr-1)*pm.runNum + runnr-1]['accuracy'][i])
-                line += 1;
-            line += 1
+    for totalrunnr in range(len(pm.history_list)):
+        foldnr = totalrunnr // pm.nb_folds;
+        runnr  = totalrunnr - foldnr * pm.nb_folds;
+        for i in range(len(pm.history_list[totalrunnr]['val_loss'])):
+            worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr + 1, runnr + 1))
+            worksheet.write(line, 1, i+1)
+            worksheet.write(line, 2, pm.history_list[totalrunnr]['val_loss'][i])
+            worksheet.write(line, 3, pm.history_list[totalrunnr]['val_accuracy'][i])
+            worksheet.write(line, 4, pm.history_list[totalrunnr]['loss'][i])
+            worksheet.write(line, 5, pm.history_list[totalrunnr]['accuracy'][i])
+            line += 1;
+        line += 1
 
     # Also write the scores for every run to this file
     worksheet.write(1, 7, 'precision')
@@ -358,12 +358,26 @@ def train_and_predict():
     model.add(Dense(pm.NB_CLASSES))
     model.add(Activation('softmax'))
 
+
+    # Add the TensorBoard callback
+    tensorboard_callback = TensorBoard(log_dir="../tb_logs/"+pm.filename_run)
+    earlystopping_callback = EarlyStopping(
+        monitor=pm.es_monitor,      # Quantity to be monitored
+        min_delta=pm.es_mindelta,   # Minimum change to qualify as 'improvement'
+        patience=pm.es_patience,    # Number of epochs with no epochs, before training is stopped
+        verbose=0,
+        mode="auto",                # Automatically determined whether minimize or maximize the loss
+        baseline=None,
+        restore_best_weights=True,  # When the model is stopped, the model weights with the best monitored quantity are used.
+    )
+
     # Selecting optimizer with variable learning rate, and compile and fit the model using these settings
     for ep in range(len(pm.nb_epochs)):
         optimizer=Adam(lr=pm.learning_rate[ep])
         model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
         history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs[ep], \
-            verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction) #class_weight = class_w
+            verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction, \
+            callbacks=[tensorboard_callback,earlystopping_callback]) #class_weight = class_w
 
         # Save the history for this set of epochs
         if ep == 0:
@@ -415,6 +429,9 @@ if __name__ == '__main__':
         # When too many arguments are given.
         print("Only one argument is allowed to define the parameter file.")
         sys.exit(2)
+
+    # Initiate TensorBoard Log Dictionary
+    os.mkdir('../tb_logs/' + pm.filename_run)
 
     # Start the execution of the script here
     print('-'*30)
