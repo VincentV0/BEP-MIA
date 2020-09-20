@@ -1,4 +1,6 @@
 # Changelog
+### 20 Sep 2020
+- Added the TensorBoard and EarlyStopping callbacks.
 
 ### 12 Sep 2020
 - Result data processing is now updated, but not yet tested.
