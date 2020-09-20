@@ -335,20 +335,20 @@ def train_and_predict():
     print('-'*30)
 
     model = keras.Sequential()
-    model.add(Conv2D(32, pm.conv_kernel, activation='relu', padding='same', input_shape = pm.input_shape_ds))
-    model.add(Conv2D(32, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(32, pm.conv_kernel_1, activation='relu', padding='same', input_shape = pm.input_shape_ds))
+    model.add(Conv2D(32, pm.conv_kernel_1, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
-    model.add(Conv2D(64, pm.conv_kernel, activation='relu', padding='same'))
-    model.add(Conv2D(64, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(64, pm.conv_kernel_2, activation='relu', padding='same'))
+    model.add(Conv2D(64, pm.conv_kernel_2, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
-    model.add(Conv2D(128, pm.conv_kernel, activation='relu', padding='same'))
-    model.add(Conv2D(128, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(128, pm.conv_kernel_3, activation='relu', padding='same'))
+    model.add(Conv2D(128, pm.conv_kernel_3, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
-    model.add(Conv2D(256, pm.conv_kernel, activation='relu', padding='same'))
-    model.add(Conv2D(256, pm.conv_kernel, activation='relu', padding='same'))
+    model.add(Conv2D(256, pm.conv_kernel_4, activation='relu', padding='same'))
+    model.add(Conv2D(256, pm.conv_kernel_4, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
     model.add(Flatten())

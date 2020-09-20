@@ -49,7 +49,10 @@ train_batch_size = 32;      # number of samples used in the calculation for ever
 loss_function = 'binary_crossentropy';
 model_metrics = ['accuracy'];
 
-conv_kernel = (3, 3);
+conv_kernel_1 = (3, 3);
+conv_kernel_2 = (3, 3);
+conv_kernel_3 = (3, 3);
+conv_kernel_4 = (3, 3);
 maxpool_kernel = (2, 2);
 
 es_monitor = "val_loss";
