@@ -51,3 +51,7 @@ model_metrics = ['accuracy'];
 
 conv_kernel = (3, 3);
 maxpool_kernel = (2, 2);
+
+es_monitor = "val_loss";
+es_mindelta = 0;   # any improvement is improvement
+es_patience = 2;   # wait two epochs before exiting

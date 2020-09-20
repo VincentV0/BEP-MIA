@@ -36,10 +36,10 @@ verbose_mode = 1;           # verbosity mode (0 = silent, 1 = progress bar, 2 = 
 
 ## Hyperparameters:
 filename_run = 'test';   # Used to save the result data to a specific name
-nb_folds = 5;               # Number of folds to be used in k-fold cross validation
-runNum = 2;                # nr of runs per fold
-nb_epochs = [3];          # number of epochs to train the model
-learning_rate = [1e-5];# variable learning rate for different amounts of epochs
+nb_folds = 3;               # Number of folds to be used in k-fold cross validation
+runNum = 1;                # nr of runs per fold
+nb_epochs = [3,2];          # number of epochs to train the model
+learning_rate = [1e-5,1e-6];# variable learning rate for different amounts of epochs
 
 validation_fraction = 0.2;  # fraction of the remaining train data to be used as
                             # validation (this uses hold-out validation)
@@ -51,3 +51,7 @@ model_metrics = ['accuracy'];
 
 conv_kernel = (3, 3);
 maxpool_kernel = (2, 2);
+
+es_monitor = "val_loss";
+es_mindelta = 0;   # any improvement is improvement
+es_patience = 2;   # wait two epochs before exiting
