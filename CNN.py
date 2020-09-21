@@ -431,8 +431,10 @@ if __name__ == '__main__':
         sys.exit(2)
 
     # Initiate TensorBoard Log Dictionary
-    os.mkdir('../tb_logs/' + pm.filename_run)
-
+    try:
+        os.mkdir('../tb_logs/' + pm.filename_run)
+    except:
+        pass;
     # Start the execution of the script here
     print('-'*30)
     print('Loading and preprocessing data and applying K-Fold splitting...')
