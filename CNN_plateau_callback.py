@@ -252,9 +252,9 @@ def write_save_data():
     line = 1;
     for totalrunnr in range(len(pm.history_list)):
         foldnr = totalrunnr // pm.nb_folds;
-        runnr  = totalrunnr - foldnr * pm.nb_folds;
+        runnr = totalrunnr % pm.nb_folds;
         for i in range(len(pm.history_list[totalrunnr]['val_loss'])):
-            worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr + 1, runnr + 1))
+            worksheet.write(line, 0, 'FOLD {} RUN {}'.format(foldnr+1, runnr+1))
             worksheet.write(line, 1, i+1)
             worksheet.write(line, 2, pm.history_list[totalrunnr]['val_loss'][i])
             worksheet.write(line, 3, pm.history_list[totalrunnr]['val_accuracy'][i])
