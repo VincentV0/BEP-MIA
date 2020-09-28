@@ -1,4 +1,9 @@
 # Changelog
+### 28 Sep 2020
+- Added the Reduce LR on Plateau callback.
+- Updated the data loader to remove duplicate samples.
+- Data is augmented using different methods (shearing, scaling, applying Gaussian blurring and more).
+
 ### 20 Sep 2020
 - Added the TensorBoard and EarlyStopping callbacks.
 - Added a variable convolution kernel size for the different layer "segments".
