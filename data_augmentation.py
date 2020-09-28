@@ -4,14 +4,8 @@ This script allows for data augmentation using different methods.
 """
 
 import numpy as np
-
-"""
-Registration module main code.
-"""
-
 import numpy as np
 from scipy import ndimage
-import registration_util as util
 
 
 # SECTION 1. Geometrical transformations
@@ -85,6 +79,20 @@ def t2h(T, t=np.array([0,0])):
     return Th
 
 
+def c2h(X):
+    """
+    Converts cartesian to homogeneous coordinates.
+    """
+    # Creates a row vector with ones with in the size of X.
+    n = np.ones([1,X.shape[1]])
+
+    # Creates the homogeneous coordinates by adding the vector of ones
+    # under the matrix.
+    Xh = np.concatenate((X,n))
+
+    return Xh
+
+
 def image_transform(I, Th):
     """
     This function transforms an image using the homogenous transformation matrix.
@@ -101,7 +109,7 @@ def image_transform(I, Th):
     X = np.concatenate((xx.reshape((1, xx.size)), yy.reshape((1, yy.size))))
 
     # Convert to homogeneous coordinates
-    Xh = util.c2h(X)
+    Xh = c2h(X)
 
     # Calculate the inverse of the homogenous transformation matrix.
     Th_inv =  np.linalg.inv(Th)
@@ -111,9 +119,8 @@ def image_transform(I, Th):
     Xt = Th_inv.dot(Xh)
 
     # Calculate the transformed image.
-    It = ndimage.map_coordinates(I, [Xt[1,:], Xt[0,:]], order=1,
-                                 mode='constant').reshape(I.shape)
-    return It, Xt
+    It = ndimage.interpolation.map_coordinates(I, [Xt[1,:], Xt[0,:]], order=1, mode='constant').reshape(I.shape)
+    return It
 
 
 def augment_data(data,labels,tot_nb_samples):
@@ -135,16 +142,16 @@ def augment_data(data,labels,tot_nb_samples):
 
     # Determine the possible values for the different transformations
     reflect_options = [-1, 1]
-    scale_options = list(range(1,2,0.05))
-    rotate_options = list(range(-np.pi, np.pi, 0.05*np.pi))
-    shear_options = list(range(-1,1,0.05))
-    gaussian_options = list(range(0.5, 5.5, 0.5))
+    scale_options = np.arange(1,2,0.05)
+    rotate_options = np.arange(-np.pi, np.pi, 0.05*np.pi)
+    shear_options = np.arange(-1,1,0.05)
+    gaussian_options = np.arange(0.5, 5.5, 0.5)
 
     while data.shape[0] <= tot_nb_samples:
 
         # Select image to be transformed:
         index = np.random.randint(nb_samples_start)
-        im = data[index]
+        im = data[index,:,:,0]
         im_label = labels[index]
 
         # Select random transformation:
@@ -160,7 +167,7 @@ def augment_data(data,labels,tot_nb_samples):
         if transformation_number == 1:
             # Scaling:
             sx = np.random.choice(scale_options)
-            sx = np.random.choice(scale_options)
+            sy = np.random.choice(scale_options)
             T = scale(sx,sy)
 
         if transformation_number == 2:
@@ -187,10 +194,10 @@ def augment_data(data,labels,tot_nb_samples):
             im_T = image_transform(im,Th)
 
         # Add a new axis to be able to append to the data array
-        im_T = im_T[np.newaxis, ...]
+        im_T = im_T[np.newaxis, ..., np.newaxis]
 
         # Append data and labels to the data
-        data = np.concatenate(data, im_T, axis=0)
-        labels = np.concatenate(labels, np.array([im_label]))
+        data = np.concatenate((data, im_T), axis=0)
+        labels = np.concatenate((labels, np.array([im_label])))
 
     return data, labels
