@@ -58,3 +58,6 @@ maxpool_kernel = (2, 2);
 es_monitor = "val_loss";
 es_mindelta = 0;   # any improvement is improvement
 es_patience = 2;   # wait two epochs before exiting
+
+# Total number of samples after augmenting data
+nb_samples = 10000;

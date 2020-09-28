@@ -18,7 +18,7 @@ from tensorflow.keras.layers import Input, Activation, concatenate, Conv2D, MaxP
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from tensorflow.keras import backend as K
-from data import load_data
+from data import load_data, load_cleared_data
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import f1_score, accuracy_score, auc, roc_curve, roc_auc_score, recall_score, precision_score, matthews_corrcoef, confusion_matrix, average_precision_score
 import scipy.io as sio
@@ -111,7 +111,7 @@ def make_labels(targets):
     targetShape = targets.shape;
     targetsReshaped = targets.reshape(targetShape[0],targetShape[1]*targetShape[2]);
     binary_targets = np.max(targetsReshaped,axis=1);
-    binary_targets = binary_targets / 255;
+    binary_targets[binary_targets != 0] = 1
     return binary_targets
 
 
@@ -373,7 +373,7 @@ def train_and_predict():
 
     # Selecting optimizer with variable learning rate, and compile and fit the model using these settings
     for ep in range(len(pm.nb_epochs)):
-        optimizer=Adam(lr=pm.learning_rate[ep])
+        optimizer=pm.model_optim(lr=pm.learning_rate[ep])
         model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
         history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs[ep], \
             verbose=pm.verbose_mode, shuffle=True, validation_split=pm.validation_fraction, \
@@ -441,7 +441,7 @@ if __name__ == '__main__':
     print('-'*30)
 
     # Loading, preprocessing and splitting data
-    data, labels = load_data()
+    data, labels = load_cleared_data()
     labels = make_labels(labels)
     data = preprocess(data)
     indices = split_data(data, labels, pm.nb_folds)
