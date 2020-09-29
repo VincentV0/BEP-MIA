@@ -123,7 +123,7 @@ def image_transform(I, Th):
     return It
 
 
-def augment_data(data,labels,tot_nb_samples):
+def augment_data(data,labels,augm_nb_samples):
     """
     DESCRIPTION:
     -----------
@@ -151,7 +151,7 @@ def augment_data(data,labels,tot_nb_samples):
     shear_options = np.arange(-1,1,0.05)
     gaussian_options = np.arange(0.5, 5.5, 0.5)
 
-    while nb_samples_start+len(augmented_data) <= tot_nb_samples:
+    while len(augmented_data) <= augm_nb_samples:
 
         # Select image to be transformed:
         index = np.random.randint(nb_samples_start)
@@ -162,51 +162,64 @@ def augment_data(data,labels,tot_nb_samples):
         transformation_number = np.random.randint(4)
         if transformation_number == 0:
             # Reflection:
-            rx, ry = 1, 1
+            rx, ry = 1, 1;
             while rx == 1 and ry == 1:
-                rx = np.random.choice(reflect_options)
-                ry = np.random.choice(reflect_options)
-            T = reflect(rx,ry)
+                rx = np.random.choice(reflect_options);
+                ry = np.random.choice(reflect_options);
+            T = reflect(rx,ry);
 
         if transformation_number == 1:
             # Scaling:
-            sx = np.random.choice(scale_options)
-            sy = np.random.choice(scale_options)
-            T = scale(sx,sy)
+            sx = np.random.choice(scale_options);
+            sy = np.random.choice(scale_options);
+            T = scale(sx,sy);
 
         if transformation_number == 2:
             # Rotation:
-            angle = np.random.choice(rotate_options)
-            T = rotate(angle)
+            angle = np.random.choice(rotate_options);
+            T = rotate(angle);
 
         if transformation_number == 3:
             # Shearing:
-            cx = np.random.choice(shear_options)
-            cy = np.random.choice(shear_options)
-            T = shear(cx,cy)
+            cx = np.random.choice(shear_options);
+            cy = np.random.choice(shear_options);
+            T = shear(cx,cy);
 
         if transformation_number == 4:
             # Gaussian blur:
-            sigma = np.random.choice(gaussian_options)
-            im_T = ndimage.gaussian_filter(im, sigma=sigma)
+            sigma = np.random.choice(gaussian_options);
+            im_T = ndimage.gaussian_filter(im, sigma=sigma);
 
         if transformation_number != 4:
             # Do some steps which are not required in Gaussian blurring
+            # Check for singularity. When the matrix is singular, it cannot be
+            # inverted or applied to the image and this step is reset.
+            det = T[0,0]*T[1,1] - T[0,1]*T[1,0];
+            if det == 0: continue;
+
             # Converts the 2D-transformation matrix to the homogenous form:
-            Th = t2h(T)
+            Th = t2h(T);
+
             # Transform the image using the homogenous transformation matrix.
-            im_T = image_transform(im,Th)
+            im_T = image_transform(im,Th);
 
         # Add a new axis to be able to append to the data array
-        im_T = im_T[..., np.newaxis]
+        im_T = im_T[..., np.newaxis];
 
         # Append data and labels to the augmented data lists
-        augmented_data.append(im_T)
-        augmented_labels.append(im_label)
-        if (nb_samples_start+len(augmented_data)) % 10 == 0:
-            print('Number of training samples: {0} ({1} augmented)'.format(len(augmented_data)+nb_samples_start, len(augmented_data)))
+        augmented_data.append(im_T);
+        augmented_labels.append(im_label);
 
-    # Convert the lists to arrays and return
-    augmented_data = np.array(augmented_data)
-    augmented_labels = np.array(augmented_labels)
-    return augmented_data, augmented_labels
+
+    # Convert the lists to arrays
+    print('{} samples augmented'.format(len(augmented_data)))
+    augmented_data = np.array(augmented_data);
+    augmented_labels = np.array(augmented_labels);
+
+    # Remove duplicate augmented samples
+    augmented_data_unique, i_unique = np.unique(augmented_data, return_index=True, axis=0);
+    augmented_labels_unique = augmented_labels[i_unique];
+    print('{} augmented samples left after removing duplicates'.format(augmented_data_unique.shape[0]))
+
+    # Return augmented samples
+    return augmented_data_unique, augmented_labels_unique

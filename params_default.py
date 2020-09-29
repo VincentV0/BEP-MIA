@@ -66,4 +66,4 @@ RLRP_factor = 0.2;              # Factor to decrease learning rate by
 RLRP_minlr = 1e-10;             # Lowest learning rate allowed
 
 # Data augmentation hyperparameters
-nb_train_samples = 10000;       # Total number of training samples after data augmentation
+nb_augm_samples = 5000;       # Total number of training samples after data augmentation
