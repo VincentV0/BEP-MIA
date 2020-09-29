@@ -379,14 +379,14 @@ if __name__ == '__main__':
             y_val = y_trainval[val_indices]
             y_train = y_trainval[train_indices]
 
-            # Augmenting the training data
+            # Augmenting the training data and merging this data with the training data
             print('-'*30)
             print('Augmenting data...')
             print('-'*30)
-            X_train, y_train = augment_data(X_train, y_train, pm.nb_train_samples)
-
-            print(X_train.shape)
-            print(X_val.shape)
+            X_train_aug, y_train_aug = augment_data(X_train, y_train, pm.nb_train_samples)
+            X_train = np.concatenate((X_train, X_train_aug), axis=0)
+            y_train = np.concatenate((y_train, y_train_aug), axis=0)
+            
             # Run the main function
             train_and_predict()
 
