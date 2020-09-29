@@ -140,6 +140,10 @@ def augment_data(data,labels,tot_nb_samples):
     # Record the number of samples before augmentation.
     nb_samples_start = data.shape[0]
 
+    # Make two lists for augmented samples and labels
+    augmented_data = []
+    augmented_labels = []
+
     # Determine the possible values for the different transformations
     reflect_options = [-1, 1]
     scale_options = np.arange(1,2,0.05)
@@ -147,7 +151,7 @@ def augment_data(data,labels,tot_nb_samples):
     shear_options = np.arange(-1,1,0.05)
     gaussian_options = np.arange(0.5, 5.5, 0.5)
 
-    while data.shape[0] <= tot_nb_samples:
+    while nb_samples_start+len(augmented_data) <= tot_nb_samples:
 
         # Select image to be transformed:
         index = np.random.randint(nb_samples_start)
@@ -194,10 +198,15 @@ def augment_data(data,labels,tot_nb_samples):
             im_T = image_transform(im,Th)
 
         # Add a new axis to be able to append to the data array
-        im_T = im_T[np.newaxis, ..., np.newaxis]
+        im_T = im_T[..., np.newaxis]
 
-        # Append data and labels to the data
-        data = np.concatenate((data, im_T), axis=0)
-        labels = np.concatenate((labels, np.array([im_label])))
+        # Append data and labels to the augmented data lists
+        augmented_data.append(im_T)
+        augmented_labels.append(im_label)
+        if (nb_samples_start+len(augmented_data)) % 10 == 0:
+            print('Number of training samples: {0} ({1} augmented)'.format(len(augmented_data)+nb_samples_start, len(augmented_data)))
 
-    return data, labels
+    # Convert the lists to arrays and return
+    augmented_data = np.array(augmented_data)
+    augmented_labels = np.array(augmented_labels)
+    return augmented_data, augmented_labels

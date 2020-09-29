@@ -60,6 +60,7 @@ h5py==2.10.0
 heapdict==1.0.0
 html5lib==1.0.1
 idna==2.8
+imagecodecs==2020.5.30
 imageio==2.5.0
 imagesize==1.1.0
 importlib-metadata==0.0.0
@@ -115,6 +116,7 @@ numpy==1.16.2
 numpydoc==0.8.0
 oauthlib==3.1.0
 olefile==0.46
+opencv-python==4.4.0.44
 openpyxl==2.6.1
 opt-einsum==3.3.0
 packaging==19.0
@@ -160,6 +162,7 @@ pytest-doctestplus==0.3.0
 pytest-openfiles==0.3.2
 pytest-remotedata==0.3.1
 python-dateutil==2.8.0
+python-utils==2.4.0
 pytz==2018.9
 PyWavelets==1.1.1
 PyYAML==5.1
