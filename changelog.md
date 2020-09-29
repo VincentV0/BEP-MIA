@@ -1,8 +1,17 @@
 # Changelog
+### 29 Sep 2020
+- `CNN_utils.py` added, including functions that will be used by `CNN.py`
+- `CNN_plateau_callback.py` has been renamed to `CNN.py`, which means that the original `CNN.py` has been removed. The EarlyStopping callback is not used anymore, but fully replaced by the Reduce LR on Plateau callback.
+- `params_default.py` has been updated.
+- `used_python_packages.txt` has been updated
+- Updated docstrings and comments
+- Updated README.md
+
 ### 28 Sep 2020
 - Added the Reduce LR on Plateau callback.
 - Updated the data loader to remove duplicate samples.
 - Data is augmented using different methods (shearing, scaling, applying Gaussian blurring and more).
+  - `data_augmentation.py` has been added.
 
 ### 20 Sep 2020
 - Added the TensorBoard and EarlyStopping callbacks.
