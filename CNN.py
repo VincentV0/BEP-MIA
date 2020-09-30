@@ -51,7 +51,7 @@ def preprocess(imgs):
     """
     DESCRIPTION:
     -----------
-    Preprocess data via resizing images
+    Preprocess data (downsampling and adding an axis)
 
     Parameters
     ----------
@@ -193,46 +193,56 @@ def train_and_predict():
     None.
 
     """
-    start_time = datetime.now()   # Used to measure time taken
+    # Start time is logged, to determine how long a run takes.
+    start_time = datetime.now()
 
+    # Data is normalized
     print('-'*30)
     print('normalize data...')
     print('-'*30)
     trainingFeatures, trainingLabels, testFeatures, testLabels = normalization(X_train, y_train, X_test, y_test)
 
+    # Labels are made categorical
     print('-'*30)
     print('Make labels categorical...')
     print('-'*30)
     trainingLabels = keras.utils.to_categorical(trainingLabels, pm.NB_CLASSES)
 
+    # Model design is created
     print('-'*30)
-    print('Creating and compiling model...')
+    print('Creating model...')
     print('-'*30)
 
+    # Model initialization
     model = keras.Sequential()
+
+    # Model segment 1
     model.add(Conv2D(32, pm.conv_kernel_1, activation='relu', padding='same', input_shape = pm.input_shape_ds))
     model.add(Conv2D(32, pm.conv_kernel_1, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
+    # Model segment 2
     model.add(Conv2D(64, pm.conv_kernel_2, activation='relu', padding='same'))
     model.add(Conv2D(64, pm.conv_kernel_2, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
+    # Model segment 3
     model.add(Conv2D(128, pm.conv_kernel_3, activation='relu', padding='same'))
     model.add(Conv2D(128, pm.conv_kernel_3, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
+    # Model segment 4
     model.add(Conv2D(256, pm.conv_kernel_4, activation='relu', padding='same'))
     model.add(Conv2D(256, pm.conv_kernel_4, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
+    # Model final segment (class determination)
     model.add(Flatten())
     model.add(BatchNormalization())
     model.add(Dense(8, kernel_initializer='glorot_uniform', activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(pm.NB_CLASSES))
     model.add(Activation('softmax'))
-
 
     # Add the TensorBoard callback
     tensorboard_callback = TensorBoard(log_dir="../tb_logs/"+pm.filename_run)
@@ -270,7 +280,7 @@ def train_and_predict():
     predicted_testLabels = model.predict_classes(testFeatures,verbose = 0)
     soft_targets_test = model.predict(testFeatures,verbose = 0)
 
-    ############## model prediction and evaluation ##############
+    # Model prediction
     print('-'*30)
     print('Calculating scores...')
     print('-'*30)
