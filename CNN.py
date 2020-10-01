@@ -193,21 +193,6 @@ def train_and_predict():
     None.
 
     """
-    # Start time is logged, to determine how long a run takes.
-    start_time = datetime.now()
-
-    # Data is normalized
-    print('-'*30)
-    print('normalize data...')
-    print('-'*30)
-    trainingFeatures, trainingLabels, testFeatures, testLabels = normalization(X_train, y_train, X_test, y_test)
-
-    # Labels are made categorical
-    print('-'*30)
-    print('Make labels categorical...')
-    print('-'*30)
-    trainingLabels = keras.utils.to_categorical(trainingLabels, pm.NB_CLASSES)
-
     # Model design is created
     print('-'*30)
     print('Creating model...')
@@ -261,8 +246,9 @@ def train_and_predict():
     for ep in range(len(pm.nb_epochs)):
         optimizer=pm.model_optim(lr=pm.learning_rate[ep])
         model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
-        history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, epochs=pm.nb_epochs[ep], \
-            verbose=pm.verbose_mode, shuffle=True, validation_data=(X_val,y_val), \
+        history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, \
+            epochs=pm.nb_epochs[ep], verbose=pm.verbose_mode, shuffle=True, \
+            validation_data=(valFeatures,valLabels),
             callbacks=[tensorboard_callback,reduce_lr_plateau])
 
         # Save the history for this set of epochs
@@ -303,13 +289,9 @@ def train_and_predict():
     pm.fpr_list.append(fpr)
     pm.tpr_list.append(tpr)
 
-    # Calculating and saving run time
-    end_time = datetime.now()
-    total_time = time_diff_format(start_time, end_time)
-    pm.time_list.append(total_time)
-
 
 ################################################################################
+
 if __name__ == '__main__':
     # Check whether a custom parameter file has been defined, and import this
     # parameter file. If none is defined, the default parameter file is used.
@@ -372,34 +354,56 @@ if __name__ == '__main__':
 
         # Return split datasets
         X_test  = data[test_i];
-        X_trainval = data[train_i];
+        X_train = data[train_i];
         y_test  = labels[test_i];
-        y_trainval = labels[train_i];
+        y_train = labels[train_i];
 
         # Make multiple runs per fold
         for run in range(pm.runNum):
+            # Start time is logged, to determine how long a run takes.
+            start_time = datetime.now()
+
+            # Data is normalized
+            print('-'*30)
+            print('Normalizing data...')
+            print('-'*30)
+            trainingFeatures, trainingLabels, testFeatures, testLabels = \
+                normalization(X_train, y_train, X_test, y_test)
+
+            # Labels are made categorical
+            print('-'*30)
+            print('Making labels categorical...')
+            print('-'*30)
+            trainingLabels = keras.utils.to_categorical(trainingLabels, pm.NB_CLASSES)
+
+            # Using hold out validation to select validation set
             print('-'*30)
             print('Selecting and assigning validation set...')
             print('-'*30)
+            train_indices,val_indices = train_test_split(np.arange(trainingFeatures.shape[0]),\
+                test_size=pm.validation_fraction)
+            valFeatures      = trainingFeatures[val_indices]
+            trainingFeatures = trainingFeatures[train_indices]
+            valLabels        = trainingLabels[val_indices]
+            trainingLabels   = trainingLabels[train_indices]
 
-            # Using hold out validation to select validation set
-            train_indices,val_indices = train_test_split(np.arange(X_trainval.shape[0]), test_size=pm.validation_fraction)
-            X_val = X_trainval[val_indices]
-            X_train = X_trainval[train_indices]
-            y_val = y_trainval[val_indices]
-            y_train = y_trainval[train_indices]
-
-            # Augmenting the training data and
-            print('-'*30)
-            print('Augmenting data...')
-            print('-'*30)
-            X_train_aug, y_train_aug = augment_data(X_train, y_train, pm.nb_augm_samples)
-
-            X_train = np.concatenate((X_train, X_train_aug), axis=0)
-            y_train = np.concatenate((y_train, y_train_aug), axis=0)
+            # Augmenting the training data and adding this to the training data set
+            if pm.data_augm:
+                print('-'*30)
+                print('Augmenting data...')
+                print('-'*30)
+                augm_trainingFeatures, augm_trainingLabels = \
+                    augment_data(trainingFeatures, trainingLabels, pm.nb_augm_samples)
+                trainingFeatures = np.concatenate((trainingFeatures, augm_trainingFeatures), axis=0)
+                trainingLabels = np.concatenate((trainingLabels, augm_trainingLabels), axis=0)
 
             # Run the main function
             train_and_predict()
+
+            # Calculating and saving run time
+            end_time = datetime.now()
+            total_time = time_diff_format(start_time, end_time)
+            pm.time_list.append(total_time)
 
     # Save the data to an xlsx-file and an image.
     write_save_data()

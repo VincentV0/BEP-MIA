@@ -4,7 +4,6 @@ This script allows for data augmentation using different methods.
 """
 
 import numpy as np
-import numpy as np
 from scipy import ndimage
 
 
@@ -159,7 +158,7 @@ def augment_data(data,labels,augm_nb_samples):
         im_label = labels[index]
 
         # Select random transformation:
-        transformation_number = np.random.randint(4)
+        transformation_number = np.random.randint(5)
         if transformation_number == 0:
             # Reflection:
             rx, ry = 1, 1;
