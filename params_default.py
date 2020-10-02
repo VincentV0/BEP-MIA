@@ -68,3 +68,5 @@ RLRP_minlr = 1e-10;             # Lowest learning rate allowed
 # Data augmentation hyperparameters
 data_augm = True;             # Whether to apply data augmentation or not
 nb_augm_samples = 5000;       # Total number of training samples after data augmentation
+augm_transformations = ['reflect','scale','rotate','shear','gaussblur']
+                              # Transformations to be applied to images

@@ -393,7 +393,7 @@ if __name__ == '__main__':
                 print('Augmenting data...')
                 print('-'*30)
                 augm_trainingFeatures, augm_trainingLabels = \
-                    augment_data(trainingFeatures, trainingLabels, pm.nb_augm_samples)
+                    augment_data(trainingFeatures, trainingLabels, pm.nb_augm_samples, pm.augm_transformations)
                 trainingFeatures = np.concatenate((trainingFeatures, augm_trainingFeatures), axis=0)
                 trainingLabels = np.concatenate((trainingLabels, augm_trainingLabels), axis=0)
 

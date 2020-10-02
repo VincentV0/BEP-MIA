@@ -122,7 +122,7 @@ def image_transform(I, Th):
     return It
 
 
-def augment_data(data,labels,augm_nb_samples):
+def augment_data(data,labels,augm_nb_samples,transforms):
     """
     DESCRIPTION:
     -----------
@@ -158,8 +158,8 @@ def augment_data(data,labels,augm_nb_samples):
         im_label = labels[index]
 
         # Select random transformation:
-        transformation_number = np.random.randint(5)
-        if transformation_number == 0:
+        transformation = np.random.choice(transforms)
+        if transformation == 'reflect':
             # Reflection:
             rx, ry = 1, 1;
             while rx == 1 and ry == 1:
@@ -167,29 +167,29 @@ def augment_data(data,labels,augm_nb_samples):
                 ry = np.random.choice(reflect_options);
             T = reflect(rx,ry);
 
-        if transformation_number == 1:
+        if transformation == 'scale':
             # Scaling:
             sx = np.random.choice(scale_options);
             sy = np.random.choice(scale_options);
             T = scale(sx,sy);
 
-        if transformation_number == 2:
+        if transformation == 'rotate':
             # Rotation:
             angle = np.random.choice(rotate_options);
             T = rotate(angle);
 
-        if transformation_number == 3:
+        if transformation == 'shear':
             # Shearing:
             cx = np.random.choice(shear_options);
             cy = np.random.choice(shear_options);
             T = shear(cx,cy);
 
-        if transformation_number == 4:
+        if transformation == 'gaussblur':
             # Gaussian blur:
             sigma = np.random.choice(gaussian_options);
             im_T = ndimage.gaussian_filter(im, sigma=sigma);
 
-        if transformation_number != 4:
+        if transformation != 'gaussblur':
             # Do some steps which are not required in Gaussian blurring
             # Check for singularity. When the matrix is singular, it cannot be
             # inverted or applied to the image and this step is reset.
