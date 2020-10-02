@@ -225,7 +225,7 @@ def train_and_predict():
     model.add(Flatten())
     model.add(BatchNormalization())
     model.add(Dense(8, kernel_initializer='glorot_uniform', activation='relu'))
-    model.add(Dropout(0.5))
+    model.add(Dropout(pm.dropout))
     model.add(Dense(pm.NB_CLASSES))
     model.add(Activation('softmax'))
 

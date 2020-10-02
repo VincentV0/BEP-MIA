@@ -58,6 +58,7 @@ conv_kernel_2 = (3, 3);     # Convolutional kernel size for 2nd segment
 conv_kernel_3 = (3, 3);     # Convolutional kernel size for 3rd segment
 conv_kernel_4 = (3, 3);     # Convolutional kernel size for 4th segment
 maxpool_kernel = (2, 2);    # Max-pooling kernel size (all segments)
+dropout       = 0.5;        # The parameter for the dropout layer
 
 # "Reduce Learning Rate on Plateau" callback hyperparameters
 RLRP_monitor = "val_accuracy";  # Variable to be monitored for a plateau
