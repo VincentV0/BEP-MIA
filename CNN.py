@@ -105,7 +105,7 @@ def write_save_data():
     plot_ROC_curve(pm.fpr_list, pm.tpr_list, folder, filename_time)
 
     # Save the loss/accuracy history to a xlsx file
-    workbook = xlsxwriter.Workbook(folder + 'history ' + filename_time + '.xlsx')
+    workbook = xlsxwriter.Workbook(folder + 'history.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.write('B1', 'epoch')
     worksheet.write('C1', 'val_loss')
@@ -158,7 +158,7 @@ def write_save_data():
     workbook.close()
 
     # Also write the history of the final epoch for every run to a different file
-    workbook = xlsxwriter.Workbook(folder + 'history_final_epoch ' + filename_time + '.xlsx')
+    workbook = xlsxwriter.Workbook(folder + 'history_final_epoch.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.write('B1', 'val_loss')
     worksheet.write('C1', 'val_acc')
@@ -234,12 +234,12 @@ def train_and_predict():
 
     # Another callback is used, which reduces the learning rate when a plateau
     # is reached on the monitored variable.
-    reduce_lr_plateau = ReduceLROnPlateau(
-        monitor = pm.RLRP_monitor,
-        factor = pm.RLRP_factor,
-        patience = pm.RLRP_patience,
-        min_lr = pm.RLRP_minlr,
-    )
+#    reduce_lr_plateau = ReduceLROnPlateau(
+#        monitor = pm.RLRP_monitor,
+#        factor = pm.RLRP_factor,
+#        patience = pm.RLRP_patience,
+#        min_lr = pm.RLRP_minlr,
+#    )
 
     # Selecting optimizer with variable learning rate, and compile and fit the
     # model using these settings
@@ -249,7 +249,7 @@ def train_and_predict():
         history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, \
             epochs=pm.nb_epochs[ep], verbose=pm.verbose_mode, shuffle=True, \
             validation_data=(valFeatures,valLabels),
-            callbacks=[tensorboard_callback,reduce_lr_plateau])
+            callbacks=[tensorboard_callback])#,reduce_lr_plateau])
 
         # Save the history for this set of epochs
         if ep == 0:
@@ -334,9 +334,13 @@ if __name__ == '__main__':
     print('-'*30)
 
     # Loading, preprocessing and splitting data
-    data, labels = load_cleared_data()
+    if pm.use_cleared_data:
+        data, labels = load_cleared_data()
+    else:
+        data, labels = load_data()
     labels = make_labels(labels)
     data = preprocess(data)
+
 
     # Split the data using K-Fold cross validation
     print('-'*30)
@@ -375,7 +379,7 @@ if __name__ == '__main__':
             print('Making labels categorical...')
             print('-'*30)
             trainingLabels = keras.utils.to_categorical(trainingLabels, pm.NB_CLASSES)
-
+            print(trainingLabels)
             # Using hold out validation to select validation set
             print('-'*30)
             print('Selecting and assigning validation set...')

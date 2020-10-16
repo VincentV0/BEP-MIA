@@ -64,7 +64,7 @@ def plot_ROC_curve(fpr, tpr, folder, filetime):
     ax.set_xlabel('False positive rate')
     ax.set_ylabel('True positive rate')
     #ax.legend()
-    fig.savefig(folder + "ROC_curve " + filetime)
+    fig.savefig(folder + "ROC_curve")
 
 ################################################################################
 
