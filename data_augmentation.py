@@ -222,3 +222,112 @@ def augment_data(data,labels,augm_nb_samples,transforms):
 
     # Return augmented samples
     return augmented_data_unique, augmented_labels_unique
+
+
+def augment_data_with_masks(data,masks,labels,augm_nb_samples,transforms):
+    """
+    DESCRIPTION:
+    -----------
+    This function takes all the data and increases the number of samples by
+    randomly selecting a transformation to be done.
+
+    Returns:
+    -------
+    data: TYPE np.ndarray
+        Array with images
+    labels: TYPE nd.ndarray
+        Array with the labels
+    """
+    # Record the number of samples before augmentation.
+    nb_samples_start = data.shape[0]
+
+    # Make two lists for augmented samples and labels
+    augmented_data = []
+    augmented_masks = []
+    augmented_labels = []
+
+    # Determine the possible values for the different transformations
+    reflect_options = [-1, 1]
+    scale_options = np.arange(1,2,0.05)
+    rotate_options = np.arange(-np.pi, np.pi, 0.05*np.pi)
+    shear_options = np.arange(-1,1,0.05)
+    gaussian_options = np.arange(0.5, 5.5, 0.5)
+
+    while len(augmented_data) <= augm_nb_samples:
+
+        # Select image to be transformed:
+        index = np.random.randint(nb_samples_start)
+        im = data[index,:,:,0]
+        msk = data[index,:,:,0]
+        im_label = labels[index]
+
+        # Select random transformation:
+        transformation = np.random.choice(transforms)
+        if transformation == 'reflect':
+            # Reflection:
+            rx, ry = 1, 1;
+            while rx == 1 and ry == 1:
+                rx = np.random.choice(reflect_options);
+                ry = np.random.choice(reflect_options);
+            T = reflect(rx,ry);
+
+        if transformation == 'scale':
+            # Scaling:
+            sx = np.random.choice(scale_options);
+            sy = np.random.choice(scale_options);
+            T = scale(sx,sy);
+
+        if transformation == 'rotate':
+            # Rotation:
+            angle = np.random.choice(rotate_options);
+            T = rotate(angle);
+
+        if transformation == 'shear':
+            # Shearing:
+            cx = np.random.choice(shear_options);
+            cy = np.random.choice(shear_options);
+            T = shear(cx,cy);
+
+        if transformation == 'gaussblur':
+            # Gaussian blur:
+            sigma = np.random.choice(gaussian_options);
+            im_T = ndimage.gaussian_filter(im, sigma=sigma);
+
+        if transformation != 'gaussblur':
+            # Do some steps which are not required in Gaussian blurring
+            # Check for singularity. When the matrix is singular, it cannot be
+            # inverted or applied to the image and this step is reset.
+            det = T[0,0]*T[1,1] - T[0,1]*T[1,0];
+            if det == 0: continue;
+
+            # Converts the 2D-transformation matrix to the homogenous form:
+            Th = t2h(T);
+
+            # Transform the image using the homogenous transformation matrix.
+            im_T = image_transform(im,Th);
+            msk_T = image_transform(msk, Th);
+
+        # Add a new axis to be able to append to the data array
+        im_T = im_T[..., np.newaxis];
+        msk_T = msk_T[..., np.newaxis];
+
+        # Append data and labels to the augmented data lists
+        augmented_data.append(im_T);
+        augmented_masks.append(msk_T);
+        augmented_labels.append(im_label);
+
+
+    # Convert the lists to arrays
+    print('{} samples augmented'.format(len(augmented_data)))
+    augmented_data = np.array(augmented_data);
+    augmented_masks = np.array(augmented_data)
+    augmented_labels = np.array(augmented_labels);
+
+    # Remove duplicate augmented samples
+    augmented_data_unique, i_unique = np.unique(augmented_data, return_index=True, axis=0);
+    augmented_masks_unique = augmented_masks[i_unique];
+    augmented_labels_unique = augmented_labels[i_unique];
+    print('{} augmented samples left after removing duplicates'.format(augmented_data_unique.shape[0]))
+
+    # Return augmented samples
+    return augmented_data_unique, augmented_masks_unique, augmented_labels_unique
