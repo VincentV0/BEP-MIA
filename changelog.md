@@ -1,4 +1,9 @@
 # Changelog
+### 16 Oct 2020
+- `CNN.py` updated, does no longer include datetime in filenames, only in result folder, and has some error catches built in;
+- `CNN_utils.py` updated, does no longer include datetime in ROC-curve filename;
+- Added `combi.py` and hyperparameter files, and `data_augmentation.py` was updated, for using both classification and segmentation models.
+
 ### 29 Sep 2020
 - `CNN_utils.py` added, including functions that will be used by `CNN.py`
 - `CNN_plateau_callback.py` has been renamed to `CNN.py`, which means that the original `CNN.py` has been removed. The EarlyStopping callback is not used anymore, but fully replaced by the Reduce LR on Plateau callback.
