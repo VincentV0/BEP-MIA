@@ -57,7 +57,6 @@ def reflect(rx, ry):
     T = np.array([[rx,0],[0,ry]])
     return T
 
-
 def t2h(T, t=np.array([0,0])):
     """
     Converts a 2D transformation matrix to homogeneous form. The default translation
@@ -91,6 +90,12 @@ def c2h(X):
 
     return Xh
 
+def make_rotation(angle, img_shape):
+    T_1 = t2h(identity(), (img_shape[0]/2)*np.ones(2))
+    T_2 = t2h(rotate(angle), np.zeros(2))
+    T_3 = t2h(identity(), (img_shape[0]/2)*np.ones(2))
+    T_rot = T_1.dot(T_2).dot(T_3)
+    return T_rot
 
 def image_transform(I, Th):
     """
@@ -176,7 +181,8 @@ def augment_data(data,labels,augm_nb_samples,transforms):
         if transformation == 'rotate':
             # Rotation:
             angle = np.random.choice(rotate_options);
-            T = rotate(angle);
+            Th = make_rotation(angle, im.shape);
+            im_T = image_transform(im,Th);
 
         if transformation == 'shear':
             # Shearing:
@@ -189,7 +195,7 @@ def augment_data(data,labels,augm_nb_samples,transforms):
             sigma = np.random.choice(gaussian_options);
             im_T = ndimage.gaussian_filter(im, sigma=sigma);
 
-        if transformation != 'gaussblur':
+        if transformation != 'gaussblur' and transformation != 'rotate':
             # Do some steps which are not required in Gaussian blurring
             # Check for singularity. When the matrix is singular, it cannot be
             # inverted or applied to the image and this step is reset.
@@ -280,7 +286,9 @@ def augment_data_with_masks(data,masks,labels,augm_nb_samples,transforms):
         if transformation == 'rotate':
             # Rotation:
             angle = np.random.choice(rotate_options);
-            T = rotate(angle);
+            Th = make_rotation(angle, im.shape);
+            im_T = image_transform(im,Th);
+            msk_T = image_transform(msk, Th);
 
         if transformation == 'shear':
             # Shearing:
@@ -293,7 +301,7 @@ def augment_data_with_masks(data,masks,labels,augm_nb_samples,transforms):
             sigma = np.random.choice(gaussian_options);
             im_T = ndimage.gaussian_filter(im, sigma=sigma);
 
-        if transformation != 'gaussblur':
+        if transformation != 'gaussblur' and transformation != 'rotate':
             # Do some steps which are not required in Gaussian blurring
             # Check for singularity. When the matrix is singular, it cannot be
             # inverted or applied to the image and this step is reset.

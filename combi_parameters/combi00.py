@@ -73,13 +73,13 @@ RLRP_minlr = 1e-12;             # Lowest learning rate allowed
 use_cleared_data = True;
 data_augm = True;            # Whether to apply data augmentation or not
 nb_augm_samples = 2500;      # Total number of training samples after data augmentation (before filtering doubles)
-augm_transformations = ['reflect','scale','rotate','shear']
+augm_transformations = ['reflect']#,'scale','rotate','shear']
                              # Transformations to be applied to images
 
 # Hyperparameters for the segmentation model
 seg_start_ch      = 32
 seg_nb_epochs     = 50
-seg_batch_size    = 32
+seg_batch_size    = 16
 seg_depth         = 4
 seg_inc_rate      = 2
 seg_kernel_size   = (5, 5)

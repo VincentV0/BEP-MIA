@@ -1,10 +1,12 @@
 from __future__ import print_function
 
+import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, concatenate, Concatenate, Conv2D, MaxPooling2D, Conv2DTranspose, Dropout, UpSampling2D
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers.schedules import ExponentialDecay
+
 
 from tensorflow_addons.layers import GroupNormalization
 import numpy as np
@@ -46,8 +48,6 @@ def dice_coef(y_true, y_pred):
 
 def dice_coef_loss(y_true, y_pred):
     """
-
-
     Parameters
     ----------
     y_true : TYPE

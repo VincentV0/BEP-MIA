@@ -9,6 +9,32 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 ################################################################################
+
+def dice_coef_numpy(y_true, y_pred, smooth=1.):
+    """
+
+    Parameters
+    ----------
+    y_true : TYPE
+        the real labels.
+    y_pred : TYPE
+        the predicted labels via network.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    y_true_f = y_true.flatten()
+    y_pred_f = y_pred.flatten()
+    intersection = np.sum(y_true_f * y_pred_f)
+    union = np.sum(y_true_f) + np.sum(y_pred_f)
+    print('union = {}'.format(union))
+    if union == 0: return 1.
+    else: return (2. * intersection + smooth) / (union + smooth)
+
+################################################################################
 def time_diff_format(start, end):
     """
     DESCRIPTION: This function calculates the time difference and returns it

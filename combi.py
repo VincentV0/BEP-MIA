@@ -8,6 +8,7 @@ When no parameter file is defined, the default parameter file is used.
 import os
 import sys
 import shutil
+import pdb
 
 # Path where parameter files are stored are appended to the system path variable
 sys.path.append('./parameters/')
@@ -40,7 +41,7 @@ from sklearn.metrics import f1_score, accuracy_score, roc_curve, roc_auc_score,\
 
 # Loading functions from subfiles
 from data import load_data, load_cleared_data
-from data_augmentation import augment_data
+from data_augmentation import augment_data, augment_data_with_masks
 from CNN_utils import *
 from UNet_model import Unet, dice_coef
 
@@ -276,7 +277,7 @@ def train_and_predict_classification():
     for ep in range(len(pm.nb_epochs)):
         optimizer=pm.model_optim(lr=pm.learning_rate[ep])
         model.compile(loss=pm.loss_function, optimizer=optimizer, metrics=pm.model_metrics)
-        history = model.fit(trainingFeatures, trainingLabels, batch_size=pm.train_batch_size, \
+        history = model.fit(trainingFeaturesC, trainingLabelsC, batch_size=pm.train_batch_size, \
             epochs=pm.nb_epochs[ep], verbose=pm.verbose_mode, shuffle=True, \
             validation_data=(valFeatures,valLabels),
             callbacks=[tensorboard_callback,reduce_lr_plateau, model_checkpoint])
@@ -348,23 +349,26 @@ def train_and_predict_segmentation():
               learning_rate = pm.seg_learning_rate, upconv = pm.seg_upconv);
 
     csv_logger = CSVLogger(result_path + 'log.out', append=True, separator=';');
-    model_checkpoint = ModelCheckpoint(result_path + 'weights_segmentation.h5', monitor='val_loss',\
+    model_checkpoint = ModelCheckpoint(result_path + 'weights_segmentation {0}_{1}.h5'.format(fold,run), monitor='val_loss',\
         save_best_only=True);
     earlystopping = EarlyStopping(monitor = 'val_loss', verbose = 1, min_delta = 0.0001, \
         patience = 5, mode = 'auto', restore_best_weights = True);
 
-    seg_hist = model.fit(trainingFeatures, trainingMasks, \
+    seg_hist = model.fit(pos_trainingFeatures, pos_trainingMasks, \
         validation_data = (pos_valFeatures, pos_valMasks), \
+        #validation_split = 0.2, \
         batch_size=pm.seg_batch_size, epochs=pm.seg_nb_epochs, verbose=pm.verbose_mode,\
         shuffle=True, callbacks=[csv_logger, model_checkpoint, earlystopping]);
 
     pm.seg_history_list.append(seg_hist.history)
 
-    soft_pred_testMasks = model.predict(pos_testFeatures)
-    pred_testMasks = np.argmax(soft_pred_testMasks, axis=-1)
-    pred_testMasks = pred_testMasks[..., np.newaxis]
-    pred_testMasks = pred_testMasks.astype('float32')
-    return pred_testMasks
+    scores = model.evaluate(pos_testFeatures, pos_testMasks, verbose=0)
+    pm.dice_per_run_positives.append(scores[1])
+    print('Dice score: {}'.format(scores[1]))
+
+    scores = model.evaluate(testFeatures, testMasks, verbose=0)
+    pm.dice_per_run.append(scores[1])
+    print('Dice score total: {}'.format(scores[1]))
 
 
 ################################################################################
@@ -423,8 +427,10 @@ if __name__ == '__main__':
         data, masks = load_cleared_data()
     else:
         data, masks = load_data()
+
     data = preprocess(data)
-    masks = preprocess(masks)
+    masks = preprocess(masks/255.)
+    masks = np.round(masks)         # The preprocessing step uses interpolation and therefore the 0/1 need to be restored
     labels = make_labels(masks)
 
     # Split the data using K-Fold cross validation
@@ -444,8 +450,8 @@ if __name__ == '__main__':
         # Return split datasets (X = data, y = mask, z = class label)
         X_test  = data[test_i];
         X_train = data[train_i];
-        y_test  = masks[test_i];
-        y_train = masks[train_i];
+        Y_test  = masks[test_i];
+        Y_train = masks[train_i];
         z_test  = labels[test_i];
         z_train = labels[train_i];
 
@@ -460,8 +466,6 @@ if __name__ == '__main__':
             print('-'*30)
             trainingFeatures, trainingLabels, testFeatures, testLabels = \
                 normalization(X_train, z_train, X_test, z_test)
-            trainingMasks = y_train.astype('float32') / 255.
-            testMasks     = y_test.astype('float32') / 255.
 
             # Labels are made categorical
             print('-'*30)
@@ -479,9 +483,9 @@ if __name__ == '__main__':
             trainingFeatures = trainingFeatures[train_indices]
             valLabels        = trainingLabels[val_indices]
             trainingLabels   = trainingLabels[train_indices]
-            valMasks         = trainingMasks[val_indices]
-            trainingMasks    = trainingMasks[train_indices]
-
+            valMasks         = Y_train[val_indices]
+            trainingMasks    = Y_train[train_indices]
+            testMasks        = Y_test
 
             # Augmenting the training data and adding this to the training data set
             if pm.data_augm:
@@ -489,10 +493,9 @@ if __name__ == '__main__':
                 print('Augmenting data...')
                 print('-'*30)
                 augm_trainingFeatures, augm_trainingMasks, augm_trainingLabels = \
-                    augment_data(trainingFeatures, trainingMasks, trainingLabels, pm.nb_augm_samples, pm.augm_transformations)
-                trainingFeatures = np.concatenate((trainingFeatures, augm_trainingFeatures), axis=0)
-                trainingMasks = np.concatenate((trainingMasks, augm_trainingMasks), axis=0)
-                trainingLabels = np.concatenate((trainingLabels, augm_trainingLabels), axis=0)
+                    augment_data_with_masks(trainingFeatures, trainingMasks, trainingLabels, pm.nb_augm_samples, pm.augm_transformations)
+                trainingFeaturesC = np.concatenate((trainingFeatures, augm_trainingFeatures), axis=0)
+                trainingLabelsC = np.concatenate((trainingLabels, augm_trainingLabels), axis=0)
 
             # Run the main classification function
             pred_testLabels = train_and_predict_classification();
@@ -505,32 +508,15 @@ if __name__ == '__main__':
             pred_testMasks[pred_testLabels == 0]  = np.zeros((pm.img_rows_ds,pm.img_cols_ds))
 
             # Select data to be used in segmentation model
-
             pos_testFeatures     = testFeatures[pred_testLabels == 1]
-            pos_testMasks        = testMasks[pred_testLabels == 1]
+            pos_testMasks        = testMasks[pred_testLabels == 1].astype(np.float64)
             pos_trainingFeatures = trainingFeatures[trainingLabels[:,1] == 1]
-            pos_trainingMasks    = trainingMasks[trainingLabels[:,1] == 1]
+            pos_trainingMasks    = trainingMasks[trainingLabels[:,1] == 1].astype(np.float64)
             pos_valFeatures      = valFeatures[valLabels[:,1] == 1]
-            pos_valMasks         = valMasks[valLabels[:,1] == 1]
+            pos_valMasks         = valMasks[valLabels[:,1] == 1].astype(np.float64)
 
             # Run the main segmentation function
-            predicted_masks = train_and_predict_segmentation();
-
-            DSC = []
-            for prediction,GT in zip(predicted_masks,pos_testMasks):
-                DSC.append(dice_coef(GT,prediction))
-            pm.dice_per_run_positives.append(np.mean(DSC))
-            print('Dice score: {}'.format(np.mean(DSC)))
-
-            pred_testMasks = pred_testMasks[..., np.newaxis]
-            pred_testMasks[pred_testLabels == 1] = predicted_masks
-            pred_testMasks = pred_testMasks.astype('float32')
-
-            DSC2 = []
-            for prediction,GT in zip(pred_testMasks, testMasks):
-                DSC2.append(dice_coef(GT,prediction))
-            pm.dice_per_run.append(np.mean(DSC2))
-            print('Dice score total: {}'.format(np.mean(DSC2)))
+            train_and_predict_segmentation();
 
             # Calculating and saving run time
             end_time = datetime.now()
