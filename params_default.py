@@ -10,9 +10,9 @@ IMG_ROWS = 420;
 IMG_COLS = 580;
 
 # Locations
-save_path = '/data/vrjvousten/results/';    # path to save the results to
-data_path = '/data/vrjvousten/data/';       # path where the data is located
-tb_logs_path = '/data/vrjvousten/tb_logs/'; # path to write the TensorBoard logs to
+save_path = '';    # path to save the results to
+data_path = "E:\BEP_Data";       # path where the data is located
+tb_logs_path = 'tb_logs'; # path to write the TensorBoard logs to
 
 # Used for save data
 fpr = dict();

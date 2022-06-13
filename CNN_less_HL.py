@@ -1,7 +1,7 @@
 """
 This file contains the most important functions to run the CNN model.
 From the command line, this file can be ran using:
-    python CNN.py <parameter_file>
+    python CNN_less_HL.py <parameter_file>
 When no parameter file is defined, the default parameter file is used.
 """
 
@@ -96,16 +96,10 @@ def write_save_data():
     """
     # Get the datetime for a overall filename
     filename_time = datetime.now().strftime("%Y-%m-%d %H_%M_%S")
-    folder = pm.save_path + 'RUN {} at {}/'.format(pm.filename_run, filename_time);
+    folder = pm.save_path + 'RUN {} lessHL at {}/'.format(pm.filename_run, filename_time);
 
     # Make a folder for all the results
     os.mkdir(folder)
-
-    np.save(folder + 'train_i_' + pm.filename_run + '.npy', np.array(train_indices_total))
-    np.save(folder + 'val_i_' + pm.filename_run + '.npy', np.array(val_indices_total))
-    np.save(folder + 'test_i_' + pm.filename_run + '.npy', np.array(test_indices_total))
-    np.save(folder + 'testLabels_' + pm.filename_run + '.npy', np.array(testLabels_list))
-
 
     # Plot ROC curve and save to the folder
     plot_ROC_curve(pm.fpr_list, pm.tpr_list, folder, filename_time)
@@ -209,21 +203,17 @@ def train_and_predict():
 
     # Model segment 1
     model.add(Conv2D(32, pm.conv_kernel_1, activation='relu', padding='same', input_shape = pm.input_shape_ds))
-    model.add(Conv2D(32, pm.conv_kernel_1, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
     # Model segment 2
-    model.add(Conv2D(64, pm.conv_kernel_2, activation='relu', padding='same'))
     model.add(Conv2D(64, pm.conv_kernel_2, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
     # Model segment 3
     model.add(Conv2D(128, pm.conv_kernel_3, activation='relu', padding='same'))
-    model.add(Conv2D(128, pm.conv_kernel_3, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
     # Model segment 4
-    model.add(Conv2D(256, pm.conv_kernel_4, activation='relu', padding='same'))
     model.add(Conv2D(256, pm.conv_kernel_4, activation='relu', padding='same'))
     model.add(MaxPooling2D(pool_size=pm.maxpool_kernel))
 
@@ -291,11 +281,9 @@ def train_and_predict():
     pm.MCC.append(matthews_corrcoef(testLabels, predicted_testLabels))
 
     # Used for plotting the ROC curve
-    fpr, tpr, _ = roc_curve(testIkLabels, soft_targets_test[:, 1])
+    fpr, tpr, _ = roc_curve(testLabels, soft_targets_test[:, 1])
     pm.fpr_list.append(fpr)
     pm.tpr_list.append(tpr)
-
-    return predicted_testLabels
 
 
 ################################################################################
@@ -321,7 +309,7 @@ if __name__ == '__main__':
 
     # Initiate TensorBoard Log Dictionary
     try:
-        os.mkdir(pm.tb_logs_path + pm.filename_run)
+        os.mkdir(pm.tb_logs_path + pm.filename_run + ' lessHL')
     except FileExistsError:
         q = input('TensorBoard folder already exists, remove or append to this? [R/A] ')
         if q.upper() == "R":
@@ -345,7 +333,7 @@ if __name__ == '__main__':
     if pm.use_cleared_data:
         data, labels = load_cleared_data()
     else:
-        data, labels = load_data('train - imgs.npy', 'train - imgs_mask.npy')
+        data, labels = load_data()
     labels = make_labels(labels)
     data = preprocess(data)
 
@@ -355,10 +343,6 @@ if __name__ == '__main__':
     print('-'*30)
     KF_indices = split_test_data(data, pm.nb_folds)
 
-    val_indices_total = []
-    train_indices_total = []
-    test_indices_total = []
-    testLabels_list = []
     # Run this for every fold
     for fold in range(pm.nb_folds):
         print('-'*30)
@@ -397,11 +381,6 @@ if __name__ == '__main__':
             print('-'*30)
             train_indices,val_indices = train_test_split(np.arange(trainingFeatures.shape[0]),\
                 test_size=pm.validation_fraction)
-
-            val_indices_total.append(val_indices)
-            train_indices_total.append(train_indices)
-            test_indices_total.append(test_i)
-
             valFeatures      = trainingFeatures[val_indices]
             trainingFeatures = trainingFeatures[train_indices]
             valLabels        = trainingLabels[val_indices]
@@ -418,14 +397,12 @@ if __name__ == '__main__':
                 trainingLabels = np.concatenate((trainingLabels, augm_trainingLabels), axis=0)
 
             # Run the main function
-            pred_labels = train_and_predict()
-            testLabels_list.append(pred_labels)
+            train_and_predict()
 
             # Calculating and saving run time
             end_time = datetime.now()
             total_time = time_diff_format(start_time, end_time)
             pm.time_list.append(total_time)
-
 
     # Save the data to an xlsx-file and an image.
     write_save_data()

@@ -212,7 +212,7 @@ def create_data():
     # There are 47 patients
     for pid in range(1, 48):
         # Load images of this specific patient and filter incoherent masks.
-        imgs_pat, imgs_mask_pat = filter_images_for_patient(pid)
+        imgs_pat, imgs_mask_pat, _ = load_patient(pid)
 
         # Add all images and masks to the list
         for itemID in range(len(imgs_pat)):
@@ -230,7 +230,7 @@ def create_data():
 
 ################################################################################
 
-def load_data():
+def load_data(fn_imgs = 'imgs.npy', fn_masks = 'imgs_mask.npy'):
     """
     DESCRIPTION:
     ------------
@@ -248,8 +248,8 @@ def load_data():
         The masks belonging with the images, loaded from the npy-file.
     """
 
-    imgs_train = np.load(os.path.join(data_path,'imgs.npy'))
-    imgs_mask_train = np.load(os.path.join(data_path,'imgs_mask.npy'))
+    imgs_train = np.load(os.path.join(data_path,fn_imgs))
+    imgs_mask_train = np.load(os.path.join(data_path,fn_masks))
     return imgs_train, imgs_mask_train
 
 ################################################################################
